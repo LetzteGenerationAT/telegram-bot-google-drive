@@ -1,6 +1,12 @@
+"""
+Call the Google Drive API
+"""
 from __future__ import print_function
 
+import logging
+
 import os.path
+import datetime
 
 from google.auth.transport.requests import Request
 from google.oauth2.credentials import Credentials
@@ -8,13 +14,17 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
 # If modifying these scopes, delete the file token.json.
-SCOPES = ['https://www.googleapis.com/auth/drive.metadata.readonly']
+SCOPES = ['https://www.googleapis.com/auth/drive']
 
-
-def main():
-    """Shows basic usage of the Drive v3 API.
-    Prints the names and ids of the first 10 files the user has access to.
+def _get_credentials() -> Credentials:
+    """
+    Create credentials. If a token exists use the existing token.
     """
     creds = None
     # The file token.json stores the user's access and refresh tokens, and is
@@ -33,28 +43,38 @@ def main():
         # Save the credentials for the next run
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
+    return creds
 
+
+def manage_folder(date: datetime):
+    """
+    Get a list for all folders in the shared drive of the Presse Ag 
+    in the Subfolder ./Pressemitteilungen/Protest
+    """
+    creds = _get_credentials()
     try:
         service = build('drive', 'v3', credentials=creds)
 
-        # Call the Drive v3 API
+        # list all folders in the parent folder ./Pressemitteilungen/Protest
+        # with the id 19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ
         results = service.files().list(
-            q="mimeType='application/vnd.google-apps.folder' and (parents in '19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ')", 
-            pageSize=10, fields="nextPageToken, files(id, name)", 
-            includeItemsFromAllDrives=True, 
+            q="mimeType='application/vnd.google-apps.folder' and ('19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ' in parents)",
+            pageSize=10, fields="nextPageToken, files(id, name)",
+            includeItemsFromAllDrives=True,
             supportsAllDrives=True, ).execute()
         items = results.get('files', [])
 
         if not items:
-            print('No files found.')
+            logging.warning('No files found.')
             return
-        print('Files:')
+        logging.debug('Files:')
         for item in items:
-            print(u'{0} ({1})'.format(item['name'], item['id']))
+            logging.debug(u'{0} ({1})'.format(item['name'], item['id']))
+            fodler_name_date = item['name'].split(' ')[0]
+            if fodler_name_date == date.date().isoformat():
+                return True
+    
+        return items
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
-        print(f'An error occurred: {error}')
-
-
-if __name__ == '__main__':
-    main()
+        logging.error(f'An error occurred: {error}')

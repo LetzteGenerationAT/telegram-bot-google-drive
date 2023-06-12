@@ -5,6 +5,7 @@ import logging
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
 import config
+import drive
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -13,6 +14,8 @@ logging.basicConfig(
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
+    drive.manage_folder(update.effective_message.date)
+    
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="bot received document image"
