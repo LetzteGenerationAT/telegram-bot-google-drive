@@ -6,6 +6,8 @@ from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
 import config
 import drive
+import exif
+import os
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -14,7 +16,12 @@ logging.basicConfig(
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
-    drive.manage_folder(update.effective_message.date)
+    file = await update.effective_message.document.get_file()
+    image_path = await file.download_to_drive()
+    location = exif.get_location_tags(image_path)
+    folder_id = drive.manage_folder(update.effective_message.date, location)
+    drive.upload_to_folder(update.effective_message.document.file_name, image_path, folder_id)
+    os.remove(image_path)
     
     await context.bot.send_message(
         chat_id=update.effective_chat.id,

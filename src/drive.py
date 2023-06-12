@@ -13,6 +13,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
+from googleapiclient.http import MediaFileUpload
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -45,11 +46,64 @@ def _get_credentials() -> Credentials:
             token.write(creds.to_json())
     return creds
 
+def upload_to_folder(name: str, image_path: str, folder_id: str):
+    """Upload a file to the specified folder and prints file ID, folder ID
+    Args: Id of the folder
+    Returns: ID of the file uploaded
+    """
+    creds = _get_credentials()
 
-def manage_folder(date: datetime):
+    try:
+        # create drive api client
+        service = build('drive', 'v3', credentials=creds)
+
+        file_metadata = {
+            'name': name,
+            'parents': [folder_id]
+        }
+        media = MediaFileUpload(image_path,
+                                mimetype='image/jpeg', resumable=True)
+        # pylint: disable=maybe-no-member
+        file = service.files().create(body=file_metadata, media_body=media,
+                                      fields='id').execute()
+        print(F'File ID: "{file.get("id")}".')
+        return file.get('id')
+
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return None
+
+def create_folder(name: str):
+    """ Create a folder and prints the folder ID
+    Returns : Folder Id
+    """
+    creds = _get_credentials()
+
+    try:
+        # create drive api client
+        service = build('drive', 'v3', credentials=creds)
+        file_metadata = {
+            'name': name,
+            # 'parents': '19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ',
+            'mimeType': 'application/vnd.google-apps.folder'
+        }
+
+        # pylint: disable=maybe-no-member
+        file = service.files().create(body=file_metadata, fields='id'
+                                      ).execute()
+        print(F'Folder ID: "{file.get("id")}".')
+        return file.get('id')
+
+    except HttpError as error:
+        print(F'An error occurred: {error}')
+        return None
+
+
+def manage_folder(date: datetime, location: str):
     """
     Get a list for all folders in the shared drive of the Presse Ag 
     in the Subfolder ./Pressemitteilungen/Protest
+    Returns : Folder Id
     """
     creds = _get_credentials()
     try:
@@ -58,10 +112,11 @@ def manage_folder(date: datetime):
         # list all folders in the parent folder ./Pressemitteilungen/Protest
         # with the id 19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ
         results = service.files().list(
-            q="mimeType='application/vnd.google-apps.folder' and ('19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ' in parents)",
+            q="mimeType='application/vnd.google-apps.folder'",
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True, ).execute()
+        #  and ('19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ' in parents)
         items = results.get('files', [])
 
         if not items:
@@ -69,12 +124,17 @@ def manage_folder(date: datetime):
             return
         logging.debug('Files:')
         for item in items:
-            logging.debug(u'{0} ({1})'.format(item['name'], item['id']))
+            logging.debug(f"{item['name'],} ({item['id']})")
             fodler_name_date = item['name'].split(' ')[0]
             if fodler_name_date == date.date().isoformat():
-                return True
-    
-        return items
+                return item['id']
+        if location == None:
+            name = date.date().isoformat()
+        else:
+            name = f"{date.date().isoformat()} {location}"
+        id = create_folder(name)
+
+        return id
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
         logging.error(f'An error occurred: {error}')
