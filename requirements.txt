@@ -1,1 +1,4 @@
-ython-telegram-bot==20.3
+python-telegram-bot==20.3
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib

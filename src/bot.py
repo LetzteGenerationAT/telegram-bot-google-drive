@@ -46,7 +46,7 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 
 
 if __name__ == '__main__':
-    app = ApplicationBuilder().token(config.API_TOKEN).build()
+    app = ApplicationBuilder().token(config.TELEGRAM_API_TOKEN).build()
 
     document_image_handler = MessageHandler(filters.Document.IMAGE, document_image)
     document_video_handler = MessageHandler(filters.Document.VIDEO, document_video)
