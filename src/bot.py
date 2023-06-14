@@ -18,15 +18,25 @@ async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """An uncompressed image is received as attachment. Upload the image to google drive."""
     file = await update.effective_message.document.get_file()
     image_path = await file.download_to_drive()
-    location = exif.get_location_tags(image_path)
-    folder_id = drive.manage_folder(update.effective_message.date, location)
-    drive.upload_to_folder(update.effective_message.document.file_name, image_path, folder_id)
+    # location = exif.get_location_tags(image_path)
+    protest_folders = drive.manage_folder(update.effective_message.date)
+    # Handle error while creating or searching protest folder.
+    if protest_folders is None:
+        logging.error("Could not find or create protest folders.")
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="bot received document image but could not create protest folders. Please try again. If the error persits contact it@letztegeneration.at."
+        )
+        return
+    else:
+        drive.upload_image_to_folder(update.effective_message.document.file_name, image_path, protest_folders)
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="bot received document image"
+        )
+        
     os.remove(image_path)
     
-    await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        text="bot received document image"
-    )
 
 async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed video is received as attachment. Upload the video to google drive."""
