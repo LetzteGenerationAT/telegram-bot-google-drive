@@ -96,7 +96,7 @@ def upload_image_to_folder(name: str, image_path: str, protest_folders: ProtestF
         # Upload to Tickerbienen
         file_metadata = {
             'name': name,
-            'parents': [protest_folders.tickerbienen_bilder_folder_id_id]
+            'parents': [protest_folders.tickerbienen_bilder_folder_id]
         }
         media = MediaFileUpload(image_path,
                                 mimetype='image/jpeg', resumable=True)
@@ -212,10 +212,8 @@ def search_protest_folder(parent_id)-> ProtestFolder:
     try:
         service = build('drive', 'v3', credentials=creds)
 
-        # list all folders in the parent folder ./Pressemitteilungen/Protest
-        # with the id 19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ
         results = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.folder and ({parent_id} in parents)' and trashed=false",
+            q=f"mimeType='application/vnd.google-apps.folder' and ('{parent_id}' in parents) and trashed=false",
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True,
@@ -230,6 +228,21 @@ def search_protest_folder(parent_id)-> ProtestFolder:
                 protest_folder.videos_folder_id = folder['id']
             if folder['name'] == TICKERBIENEN:
                 protest_folder.tickerbienen_folder_id = folder['id']
+
+        results = service.files().list(
+            q=f"mimeType='application/vnd.google-apps.folder' and ('{protest_folder.tickerbienen_folder_id}' in parents) and trashed=false",
+            pageSize=10, fields="nextPageToken, files(id, name)",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+            ).execute()
+        folders = results.get('files', [])
+        for folder in folders:
+            logging.debug(f"{folder['name'],} ({folder['id']})")
+            if folder['name'] == BILDER:
+                protest_folder.tickerbienen_bilder_folder_id = folder['id']
+            if folder['name'] == VIDEOS:
+                protest_folder.tickerbienen_videos_folder_id = folder['id']
+
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
         logging.error(f'An error occurred: {error}')
