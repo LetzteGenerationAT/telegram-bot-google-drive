@@ -29,7 +29,8 @@ async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
     else:
-        drive.upload_image_to_folder(update.effective_message.document.file_name, image_path, protest_folders)
+        file_name = f"{update.effective_message.date.isoformat()}_{update.effective_message.from_user.user_name}_{update.effective_message.document.file_name}"
+        drive.upload_image_to_folder(file_name, image_path, protest_folders)
         await context.bot.send_message(
             chat_id=update.effective_chat.id,
             text="bot received document image"
