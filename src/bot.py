@@ -82,7 +82,7 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A compressed photo is received. Send a message back to the sender."""
     await context.bot.send_message(
-        chat_id=update.effective_message.from_user.id,
+        chat_id=update.effective_chat.id,
         text="""Please send the photo as attachment.
  This can be done by uncheking the \"Compress the photo\" 
  checkbox before sending the message."""
@@ -91,7 +91,7 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A compressed video is received. Send a message back to the sender."""
     await context.bot.send_message(
-        chat_id=update.effective_message.from_user.id,
+        chat_id=update.effective_chat.id,
         text="""Please send the video as attachment.
  This can be done by uncheking the \"Compress the video\" 
  checkbox before sending the message."""
