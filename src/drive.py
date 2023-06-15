@@ -5,6 +5,7 @@ from __future__ import print_function
 
 import logging
 
+
 import os.path
 import datetime
 
@@ -14,6 +15,14 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 from googleapiclient.http import MediaFileUpload
+
+# pylint: disable=import-error
+import pytz
+import config
+from enums import Media
+import helper
+from datetime import timedelta
+
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -65,11 +74,11 @@ def _get_credentials() -> Credentials:
                 'credentials.json', SCOPES)
             creds = flow.run_local_server(port=0)
         # Save the credentials for the next run
-        with open('token.json', 'w') as token:
+        with open('token.json', 'w', encoding="utf8") as token:
             token.write(creds.to_json())
     return creds
 
-def upload_image_to_folder(name: str, image_path: str, protest_folders: ProtestFolder):
+def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder, media_type: Media):
     """Upload a file to the specified folder and prints file ID, folder ID
     Args: Id of the folder
     Returns: ID of the file uploaded
@@ -80,35 +89,56 @@ def upload_image_to_folder(name: str, image_path: str, protest_folders: ProtestF
         # create drive api client
         service = build('drive', 'v3', credentials=creds)
 
-        # Upload to Bilder
-        file_metadata = {
-            'name': name,
-            'parents': [protest_folders.bilder_folder_id]
-        }
-        media = MediaFileUpload(image_path,
+        if media_type is Media.IMAGE:
+            # Upload to Bilder
+            file_metadata = {
+                'name': name,
+                'parents': [protest_folders.bilder_folder_id]
+            }
+        elif media_type is Media.VIDEO:
+            # Upload to Videos
+            file_metadata = {
+                'name': name,
+                'parents': [protest_folders.videos_folder_id]
+            }
+        else: raise TypeError('Cloud not find Media type', media_type)
+
+        media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         bilder_file = service.files().create(body=file_metadata, media_body=media,
                                       fields='id').execute()
         bilder_image_id = bilder_file.get('id')
-        logging.debug(F'File ID: "{bilder_image_id}".')
+        logging.debug('File ID: "%s".' , bilder_image_id)
 
         # Upload to Tickerbienen
-        file_metadata = {
-            'name': name,
-            'parents': [protest_folders.tickerbienen_bilder_folder_id]
-        }
-        media = MediaFileUpload(image_path,
+        if media_type is Media.IMAGE:
+            # Upload to Bilder
+            file_metadata = {
+                'name': name,
+                'parents': [protest_folders.tickerbienen_bilder_folder_id]
+            }
+        elif media_type is Media.VIDEO:
+            # Upload to Videos
+            file_metadata = {
+                'name': name,
+                'parents': [protest_folders.tickerbienen_videos_folder_id]
+            }
+        else: raise TypeError('Cloud not find Media type', media_type)
+        media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         ticker_file = service.files().create(body=file_metadata, media_body=media,
                                       fields='id').execute()
         ticker_image_id = ticker_file.get('id')
-        logging.debug(F'File ID: "{ticker_image_id}".')
+        logging.debug('File ID: "%s".' , ticker_image_id)
 
         return bilder_image_id, ticker_image_id
 
     except HttpError as error:
+        print(F'An error occurred: {error}')
+        return None
+    except TypeError as error:
         print(F'An error occurred: {error}')
         return None
 
@@ -132,7 +162,7 @@ def create_folder(name: str) -> ProtestFolder:
         parent_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         parent_folder_id = parent_folder.get('id')
-        logging.debug(f'parent folder ID: "{parent_folder_id}".')
+        logging.debug('parent folder ID: "%s".' , parent_folder_id)
 
         #create subfolder Bilder
         file_metadata = {
@@ -144,7 +174,7 @@ def create_folder(name: str) -> ProtestFolder:
         image_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         image_folder_id = image_folder.get('id')
-        logging.debug(f'image folder ID: "{image_folder_id}".')
+        logging.debug('image folder ID: "%s".', image_folder_id)
 
         #create subfolder Videos
         file_metadata = {
@@ -156,7 +186,7 @@ def create_folder(name: str) -> ProtestFolder:
         videos_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         videos_folder_id = videos_folder.get('id')
-        logging.debug(f'videos folder ID: "{videos_folder_id}".')
+        logging.debug('videos folder ID: "%s".', videos_folder_id)
 
         #create subfolder Tickerbienen
         file_metadata = {
@@ -168,7 +198,7 @@ def create_folder(name: str) -> ProtestFolder:
         ticker_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         ticker_folder_id = ticker_folder.get('id')
-        logging.debug(f'videos folder ID: "{ticker_folder_id}".')
+        logging.debug('ticker folder ID: "%s".', ticker_folder_id)
 
         #create subfolder Tickerbienen/Bilder
         file_metadata = {
@@ -180,7 +210,7 @@ def create_folder(name: str) -> ProtestFolder:
         ticker_image_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         ticker_image_folder_id = ticker_image_folder.get('id')
-        logging.debug(f'videos folder ID: "{ticker_image_folder_id}".')
+        logging.debug('ticker image folder ID: "%s".', ticker_image_folder_id)
 
         #create subfolder Tickerbienen/Videos
         file_metadata = {
@@ -192,9 +222,16 @@ def create_folder(name: str) -> ProtestFolder:
         ticker_videos_folder = service.files().create(body=file_metadata, fields='id'
                                       ).execute()
         ticker_videos_folder_id = ticker_videos_folder.get('id')
-        logging.debug(f'videos folder ID: "{ticker_videos_folder_id}".')
+        logging.debug('ticker videos folder ID: "%s".', ticker_videos_folder_id)
 
-        return ProtestFolder(parent_folder_id, image_folder_id, videos_folder_id, ticker_folder_id, ticker_image_folder_id, ticker_videos_folder_id)
+        return ProtestFolder(
+            parent_folder_id, 
+            image_folder_id, 
+            videos_folder_id, 
+            ticker_folder_id, 
+            ticker_image_folder_id, 
+            ticker_videos_folder_id
+        )
 
     except HttpError as error:
         print(F'An error occurred: {error}')
@@ -212,8 +249,11 @@ def search_protest_folder(parent_id)-> ProtestFolder:
     try:
         service = build('drive', 'v3', credentials=creds)
 
+        # pylint: disable=maybe-no-member
         results = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.folder' and ('{parent_id}' in parents) and trashed=false",
+            q=f"mimeType='application/vnd.google-apps.folder' and \
+                ('{parent_id}' in parents) and \
+                trashed=false",
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True,
@@ -221,7 +261,7 @@ def search_protest_folder(parent_id)-> ProtestFolder:
         folders = results.get('files', [])
         
         for folder in folders:
-            logging.debug(f"{folder['name'],} ({folder['id']})")
+            logging.debug("%s (%s)", folder['name'],folder['id'])
             if folder['name'] == BILDER:
                 protest_folder.bilder_folder_id = folder['id']
             if folder['name'] == VIDEOS:
@@ -230,14 +270,16 @@ def search_protest_folder(parent_id)-> ProtestFolder:
                 protest_folder.tickerbienen_folder_id = folder['id']
 
         results = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.folder' and ('{protest_folder.tickerbienen_folder_id}' in parents) and trashed=false",
+            q=f"mimeType='application/vnd.google-apps.folder' and \
+                ('{protest_folder.tickerbienen_folder_id}' in parents) and \
+                trashed=false",
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True,
             ).execute()
         folders = results.get('files', [])
         for folder in folders:
-            logging.debug(f"{folder['name'],} ({folder['id']})")
+            logging.debug("%s (%s)", folder['name'],folder['id'])
             if folder['name'] == BILDER:
                 protest_folder.tickerbienen_bilder_folder_id = folder['id']
             if folder['name'] == VIDEOS:
@@ -245,8 +287,7 @@ def search_protest_folder(parent_id)-> ProtestFolder:
 
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
-        logging.error(f'An error occurred: {error}')
-        
+        logging.error('An error occurred: %s',error)
     return protest_folder
 
 def manage_folder(date: datetime, location: str = None) -> ProtestFolder:
@@ -259,32 +300,39 @@ def manage_folder(date: datetime, location: str = None) -> ProtestFolder:
     try:
         service = build('drive', 'v3', credentials=creds)
 
-        # list all folders in the parent folder ./Pressemitteilungen/Protest
-        # with the id 19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ
-        #  and ('19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ' in parents)
+        # pylint: disable=maybe-no-member
+        if config.PROTEST_FOLDER_ID:
+            query = f"mimeType='application/vnd.google-apps.folder' and \
+                ('{config.PROTEST_FOLDER_ID}' in parents) and \
+                trashed=false"
+        else:
+            query = "mimeType='application/vnd.google-apps.folder' and trashed=false"
         results = service.files().list(
-            q="mimeType='application/vnd.google-apps.folder' and trashed=false",
+            q=query,
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
             supportsAllDrives=True, ).execute()
-        items = results.get('files', [])
+        folders = results.get('files', [])
 
-        if not items:
+        if not folders:
             logging.warning('No folder found.')
             return None
         logging.debug('Files:')
-        for item in items:
-            logging.debug(f"{item['name'],} ({item['id']})")
-            fodler_name_date = item['name'].split(' ')[0]
-            if fodler_name_date == date.date().isoformat():
-                return search_protest_folder(item['id'])
+        for folder in folders:
+            logging.debug("%s (%s)", folder['name'],folder['id'])
+            fodler_name_date = folder['name'].split(' ')[0]
+            tz_date = date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+            if helper.is_dst(pytz.timezone(config.TIMEZONE)):
+                tz_date = tz_date + timedelta(hours=1)
+            if fodler_name_date == tz_date.date().isoformat():
+                return search_protest_folder(folder['id'])
         if location is None:
-            name = date.date().isoformat()
+            name = tz_date.date().isoformat()
         else:
-            name = f"{date.date().isoformat()} {location}"
+            name = f"{tz_date.date().isoformat()} {location}"
         protest_folder = create_folder(name)
 
         return protest_folder
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
-        logging.error(f'An error occurred: {error}')
+        logging.error('An error occurred: %s',error)
