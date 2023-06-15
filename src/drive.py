@@ -106,8 +106,12 @@ def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder,
         media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
-        bilder_file = service.files().create(body=file_metadata, media_body=media,
-                                      fields='id').execute()
+        bilder_file = service.files().create(
+            body=file_metadata, 
+            media_body=media,
+            fields='id',
+            supportsAllDrives=True
+            ).execute()
         bilder_image_id = bilder_file.get('id')
         logging.debug('File ID: "%s".' , bilder_image_id)
 
@@ -128,8 +132,12 @@ def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder,
         media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
-        ticker_file = service.files().create(body=file_metadata, media_body=media,
-                                      fields='id').execute()
+        ticker_file = service.files().create(
+            body=file_metadata, 
+            media_body=media,
+            fields='id',
+            supportsAllDrives=True
+            ).execute()
         ticker_image_id = ticker_file.get('id')
         logging.debug('File ID: "%s".' , ticker_image_id)
 
@@ -152,15 +160,25 @@ def create_folder(name: str) -> ProtestFolder:
         # create drive api client
         service = build('drive', 'v3', credentials=creds)
         # create parent folder
-        file_metadata = {
-            'name': name,
-            # 'parents': ['19nJVk6IIK58lq4eX4K-_ynJ4jrJjg9uZ'],
-            'mimeType': 'application/vnd.google-apps.folder'
-        }
+        if config.PROTEST_FOLDER_ID:
+            file_metadata = {
+                'name': name,
+                'parents': [f'{config.PROTEST_FOLDER_ID}'],
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+        else:
+            file_metadata = {
+                'name': name,
+                'mimeType': 'application/vnd.google-apps.folder'
+            }
+
 
         # pylint: disable=maybe-no-member
-        parent_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        parent_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         parent_folder_id = parent_folder.get('id')
         logging.debug('parent folder ID: "%s".' , parent_folder_id)
 
@@ -171,8 +189,11 @@ def create_folder(name: str) -> ProtestFolder:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         # pylint: disable=maybe-no-member
-        image_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        image_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         image_folder_id = image_folder.get('id')
         logging.debug('image folder ID: "%s".', image_folder_id)
 
@@ -183,8 +204,11 @@ def create_folder(name: str) -> ProtestFolder:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         # pylint: disable=maybe-no-member
-        videos_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        videos_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         videos_folder_id = videos_folder.get('id')
         logging.debug('videos folder ID: "%s".', videos_folder_id)
 
@@ -195,8 +219,11 @@ def create_folder(name: str) -> ProtestFolder:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         # pylint: disable=maybe-no-member
-        ticker_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        ticker_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         ticker_folder_id = ticker_folder.get('id')
         logging.debug('ticker folder ID: "%s".', ticker_folder_id)
 
@@ -207,8 +234,11 @@ def create_folder(name: str) -> ProtestFolder:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         # pylint: disable=maybe-no-member
-        ticker_image_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        ticker_image_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         ticker_image_folder_id = ticker_image_folder.get('id')
         logging.debug('ticker image folder ID: "%s".', ticker_image_folder_id)
 
@@ -219,17 +249,20 @@ def create_folder(name: str) -> ProtestFolder:
             'mimeType': 'application/vnd.google-apps.folder'
         }
         # pylint: disable=maybe-no-member
-        ticker_videos_folder = service.files().create(body=file_metadata, fields='id'
-                                      ).execute()
+        ticker_videos_folder = service.files().create(
+            body=file_metadata, 
+            fields='id',
+            supportsAllDrives=True
+        ).execute()
         ticker_videos_folder_id = ticker_videos_folder.get('id')
         logging.debug('ticker videos folder ID: "%s".', ticker_videos_folder_id)
 
         return ProtestFolder(
-            parent_folder_id, 
-            image_folder_id, 
-            videos_folder_id, 
-            ticker_folder_id, 
-            ticker_image_folder_id, 
+            parent_folder_id,
+            image_folder_id,
+            videos_folder_id,
+            ticker_folder_id,
+            ticker_image_folder_id,
             ticker_videos_folder_id
         )
 
@@ -311,19 +344,17 @@ def manage_folder(date: datetime, location: str = None) -> ProtestFolder:
             q=query,
             pageSize=10, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
-            supportsAllDrives=True, ).execute()
+            supportsAllDrives=True).execute()
         folders = results.get('files', [])
 
-        if not folders:
-            logging.warning('No folder found.')
-            return None
+        tz_date = date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+        if helper.is_dst(pytz.timezone(config.TIMEZONE)):
+            tz_date = tz_date + timedelta(hours=1)
+
         logging.debug('Files:')
         for folder in folders:
             logging.debug("%s (%s)", folder['name'],folder['id'])
             fodler_name_date = folder['name'].split(' ')[0]
-            tz_date = date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
-            if helper.is_dst(pytz.timezone(config.TIMEZONE)):
-                tz_date = tz_date + timedelta(hours=1)
             if fodler_name_date == tz_date.date().isoformat():
                 return search_protest_folder(folder['id'])
         if location is None:
@@ -333,6 +364,29 @@ def manage_folder(date: datetime, location: str = None) -> ProtestFolder:
         protest_folder = create_folder(name)
 
         return protest_folder
+    except HttpError as error:
+        # TODO(developer) - Handle errors from drive API.
+        logging.error('An error occurred: %s',error)
+
+
+if __name__ == '__main__':
+    creds_main = _get_credentials()
+    try:
+        service_main = build('drive', 'v3', credentials=creds_main)
+
+        # pylint: disable=maybe-no-member
+        results_main = service_main.files().list(
+            q="mimeType='application/vnd.google-apps.folder' and trashed=false",
+            pageSize=10, fields="nextPageToken, files(id, name)",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True, ).execute()
+        folders_main = results_main.get('files', [])
+
+        if not folders_main:
+            logging.warning('No folder found.')
+        logging.info('Files:')
+        for folder_main in folders_main:
+            logging.info("%s (%s)", folder_main['name'],folder_main['id'])
     except HttpError as error:
         # TODO(developer) - Handle errors from drive API.
         logging.error('An error occurred: %s',error)
