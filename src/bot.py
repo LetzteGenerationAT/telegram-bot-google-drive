@@ -65,7 +65,7 @@ async def _upload_document_file(
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
     file_bytes = await _download_document_file(update)
-    protest_folders = drive.manage_folder(update.effective_message.date)
+    protest_folders = drive.manage_folder(update.effective_message.date, update.effective_user.username)
     # Upload image to drive
     await _upload_document_file(protest_folders, file_bytes, update, context, Media.IMAGE)
     
@@ -73,7 +73,7 @@ async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed video is received as attachment. Upload the video to google drive."""
     file_bytes = await _download_document_file(update)
-    protest_folders = drive.manage_folder(update.effective_message.date)
+    protest_folders = drive.manage_folder(update.effective_message.date, update.effective_user.username)
     # Upload video to drive
     await _upload_document_file(protest_folders, file_bytes, update, context, Media.VIDEO)
 
