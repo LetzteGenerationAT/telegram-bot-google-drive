@@ -78,7 +78,7 @@ def _get_credentials() -> Credentials:
             token.write(creds.to_json())
     return creds
 
-def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder, media_type: Media):
+def upload_file_to_folder(name: str, path: str, protest_folders: ProtestFolder, media_type: Media):
     """Upload a file to the specified folder and prints file ID, folder ID
     Args: Id of the folder
     Returns: ID of the file uploaded
@@ -106,14 +106,14 @@ def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder,
         media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
-        bilder_file = service.files().create(
+        uploaded_file = service.files().create(
             body=file_metadata, 
             media_body=media,
             fields='id',
             supportsAllDrives=True
             ).execute()
-        bilder_image_id = bilder_file.get('id')
-        logging.debug('File ID: "%s".' , bilder_image_id)
+        uploaded_file_id = uploaded_file.get('id')
+        logging.debug('File ID: "%s".' , uploaded_file_id)
 
         # Upload to Tickerbienen
         if media_type is Media.IMAGE:
@@ -132,16 +132,16 @@ def upload_image_to_folder(name: str, path: str, protest_folders: ProtestFolder,
         media = MediaFileUpload(path,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
-        ticker_file = service.files().create(
+        uploaded_ticker_file = service.files().create(
             body=file_metadata, 
             media_body=media,
             fields='id',
             supportsAllDrives=True
             ).execute()
-        ticker_image_id = ticker_file.get('id')
-        logging.debug('File ID: "%s".' , ticker_image_id)
+        uploaded_ticker_file_id = uploaded_ticker_file.get('id')
+        logging.debug('File ID: "%s".' , uploaded_ticker_file_id)
 
-        return bilder_image_id, ticker_image_id
+        return uploaded_file_id, uploaded_ticker_file_id
 
     except HttpError as error:
         print(F'An error occurred: {error}')

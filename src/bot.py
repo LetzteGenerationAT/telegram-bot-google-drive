@@ -52,7 +52,7 @@ async def _upload_document_file(
             username = update.effective_message.from_user.username
             document_filename = update.effective_message.document.file_name
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
-            drive.upload_image_to_folder(file_name, path, protest_folders, media_type)
+            drive.upload_file_to_folder(file_name, path, protest_folders, media_type)
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="bot received document file"
