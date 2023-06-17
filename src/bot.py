@@ -20,17 +20,18 @@ logging.basicConfig(
     level=logging.INFO
 )
 
-async def _download_document_file(update: Update) -> str:
+async def _download_document_file(update: Update) -> bytes:
     try:
         file = await update.effective_message.document.get_file()
-        return await file.download_to_drive()
+        ba = await file.download_as_bytearray()
+        return bytes(ba)
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error) 
 
 async def _upload_document_file(
         protest_folders,
-        path: str,
+        file_bytes: bytes,
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
         media_type: Media
@@ -52,7 +53,7 @@ async def _upload_document_file(
             username = update.effective_message.from_user.username
             document_filename = update.effective_message.document.file_name
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
-            drive.upload_file_to_folder(file_name, path, protest_folders, media_type)
+            drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
                 text="bot received document file"
@@ -63,21 +64,18 @@ async def _upload_document_file(
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
-    image_path = await _download_document_file(update)
+    file_bytes = await _download_document_file(update)
     protest_folders = drive.manage_folder(update.effective_message.date)
     # Upload image to drive
-    await _upload_document_file(protest_folders, image_path, update, context, Media.IMAGE)
-    # Delete local file 
-    os.remove(image_path)
+    await _upload_document_file(protest_folders, file_bytes, update, context, Media.IMAGE)
     
 
 async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed video is received as attachment. Upload the video to google drive."""
-    video_path = await _download_document_file(update)
+    file_bytes = await _download_document_file(update)
     protest_folders = drive.manage_folder(update.effective_message.date)
     # Upload video to drive
-    await _upload_document_file(protest_folders, video_path, update, context, Media.VIDEO)
-    os.remove(video_path)
+    await _upload_document_file(protest_folders, file_bytes, update, context, Media.VIDEO)
 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A compressed photo is received. Send a message back to the sender."""

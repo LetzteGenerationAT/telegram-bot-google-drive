@@ -14,7 +14,7 @@ from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-from googleapiclient.http import MediaFileUpload
+from googleapiclient.http import MediaInMemoryUpload
 
 # pylint: disable=import-error
 import pytz
@@ -78,7 +78,7 @@ def _get_credentials() -> Credentials:
             token.write(creds.to_json())
     return creds
 
-def upload_file_to_folder(name: str, path: str, protest_folders: ProtestFolder, media_type: Media):
+def upload_file_to_folder(name: str, file_bytes: bytes, protest_folders: ProtestFolder, media_type: Media):
     """Upload a file to the specified folder and prints file ID, folder ID
     Args: Id of the folder
     Returns: ID of the file uploaded
@@ -103,7 +103,7 @@ def upload_file_to_folder(name: str, path: str, protest_folders: ProtestFolder, 
             }
         else: raise TypeError('Cloud not find Media type', media_type)
 
-        media = MediaFileUpload(path,
+        media = MediaInMemoryUpload(file_bytes,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         uploaded_file = service.files().create(
@@ -129,7 +129,7 @@ def upload_file_to_folder(name: str, path: str, protest_folders: ProtestFolder, 
                 'parents': [protest_folders.tickerbienen_videos_folder_id]
             }
         else: raise TypeError('Cloud not find Media type', media_type)
-        media = MediaFileUpload(path,
+        media = MediaInMemoryUpload(file_bytes,
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         uploaded_ticker_file = service.files().create(
