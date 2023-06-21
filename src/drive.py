@@ -213,7 +213,7 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         if os.environ['PROTEST_FOLDER_ID']:
             file_metadata = {
                 'name': name,
-                'parents': [f'{os.environ['PROTEST_FOLDER_ID']}'],
+                'parents': [f"{os.environ['PROTEST_FOLDER_ID']}"],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
         else:
