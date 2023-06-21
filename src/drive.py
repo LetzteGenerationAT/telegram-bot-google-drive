@@ -390,6 +390,7 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         folders = results.get('files', [])
 
         tz_date = date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+        date = date + timedelta(minutes=5)
         if helper.is_dst(pytz.timezone(config.TIMEZONE)):
             tz_date = tz_date + timedelta(hours=1)
 
