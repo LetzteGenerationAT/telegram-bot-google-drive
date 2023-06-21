@@ -210,10 +210,10 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         # create drive api client
         service = build('drive', 'v3', credentials=creds)
         # create parent folder
-        if config.PROTEST_FOLDER_ID:
+        if os.environ['PROTEST_FOLDER_ID']:
             file_metadata = {
                 'name': name,
-                'parents': [f'{config.PROTEST_FOLDER_ID}'],
+                'parents': [f'{os.environ['PROTEST_FOLDER_ID']}'],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
         else:
@@ -376,9 +376,9 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         service = build('drive', 'v3', credentials=creds)
 
         # pylint: disable=maybe-no-member
-        if config.PROTEST_FOLDER_ID:
+        if os.environ['PROTEST_FOLDER_ID']:
             query = f"mimeType='application/vnd.google-apps.folder' and \
-                ('{config.PROTEST_FOLDER_ID}' in parents) and \
+                ('{os.environ['PROTEST_FOLDER_ID']}' in parents) and \
                 trashed=false"
         else:
             query = "mimeType='application/vnd.google-apps.folder' and trashed=false"

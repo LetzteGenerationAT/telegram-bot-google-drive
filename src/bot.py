@@ -105,8 +105,8 @@ async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     )
     print(message_location)
 
-if __name__ == '__main__':
-    app = ApplicationBuilder().token(config.TELEGRAM_API_TOKEN).build()
+def main():
+    app = ApplicationBuilder().token(os.environ['TELEGRAM_API_TOKEN']).build()
 
     document_image_handler = MessageHandler(filters.Document.IMAGE, document_image)
     document_video_handler = MessageHandler(filters.Document.VIDEO, document_video)
@@ -120,3 +120,6 @@ if __name__ == '__main__':
     app.add_handler(video_hanlder)
 
     app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == '__main__':
+    main()

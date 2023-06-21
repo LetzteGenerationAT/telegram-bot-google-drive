@@ -12,5 +12,5 @@ import config
 # reverse_geocode_result = gmaps.reverse_geocode((40.714224, -73.961452))
 
 def get_location(lat:str, lon:str):
-    resp = requests.get(f"https://us1.locationiq.com/v1/reverse?key={config.LOCATION_IQ_API_TOKEN}&lat={lat}&lon={lon}&format=json")
+    resp = requests.get(f"https://us1.locationiq.com/v1/reverse?key={os.environ['LOCATION_IQ_API_TOKEN']}&lat={lat}&lon={lon}&format=json")
     return f"{resp.json()['address']['city']}_{resp.json()['address']['road']}"
