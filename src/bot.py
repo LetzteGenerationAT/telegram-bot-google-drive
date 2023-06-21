@@ -48,6 +48,7 @@ async def _upload_document_file(
             return
         else:
             date = update.effective_message.date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+            date = date + timedelta(minutes=5)
             if helper.is_dst(pytz.timezone(config.TIMEZONE)):
                 date = date + timedelta(hours=1)
             username = update.effective_message.from_user.username
