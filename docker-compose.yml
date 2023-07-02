@@ -1,8 +1,8 @@
 version: '3.4'
 
 services:
-  telegrambotlggoogledrive:
-    image: telegrambotlggoogledrive
+  telegram-bot-google-drive:
+    image: telegram-bot-google-drive
     build:
       context: .
       dockerfile: ./Dockerfile
