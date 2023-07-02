@@ -1,7 +1,7 @@
 import googlemaps
 from datetime import datetime
 import requests
-import config
+import os
 
 # gmaps = googlemaps.Client(key='Add Your Key here')
 

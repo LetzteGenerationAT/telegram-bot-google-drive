@@ -10,6 +10,7 @@ import os.path
 import datetime
 
 from google.auth.transport.requests import Request
+from google.oauth2.service_account import Credentials as SaCredentials
 from google.oauth2.credentials import Credentials
 from google_auth_oauthlib.flow import InstalledAppFlow
 from googleapiclient.discovery import build
@@ -62,22 +63,26 @@ def _get_credentials() -> Credentials:
     Create credentials. If a token exists use the existing token.
     """
     creds = None
-    # The file token.json stores the user's access and refresh tokens, and is
-    # created automatically when the authorization flow completes for the first
-    # time.
-    if os.path.exists('token.json'):
-        creds = Credentials.from_authorized_user_file('token.json', SCOPES)
-    # If there are no (valid) credentials available, let the user log in.
-    if not creds or not creds.valid:
-        if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
-        else:
-            flow = InstalledAppFlow.from_client_secrets_file(
-                'credentials.json', SCOPES)
-            creds = flow.run_local_server(port=0)
-        # Save the credentials for the next run
-        with open('token.json', 'w', encoding="utf8") as token:
-            token.write(creds.to_json())
+    if config.USE_SERVICE_ACCOUNT:
+        if os.path.exists('sa.json'):
+            creds = SaCredentials.from_service_account_file('sa.json', scopes=SCOPES)
+    else:
+        # The file token.json stores the user's access and refresh tokens, and is
+        # created automatically when the authorization flow completes for the first
+        # time.
+        if os.path.exists('token.json'):
+            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        # If there are no (valid) credentials available, let the user log in.
+        if not creds or not creds.valid:
+            if creds and creds.expired and creds.refresh_token:
+                creds.refresh(Request())
+            else:
+                flow = InstalledAppFlow.from_client_secrets_file(
+                    'credentials.json', SCOPES)
+                creds = flow.run_local_server(port=0)
+            # Save the credentials for the next run
+            with open('token.json', 'w', encoding="utf8") as token:
+                token.write(creds.to_json())
     return creds
 
 def upload_file_to_folder(name: str, file_bytes: bytes, protest_folders: ProtestFolder, media_type: Media):
@@ -210,10 +215,10 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         # create drive api client
         service = build('drive', 'v3', credentials=creds)
         # create parent folder
-        if os.environ['PROTEST_FOLDER_ID']:
+        if config.PROTEST_FOLDER_ID:
             file_metadata = {
                 'name': name,
-                'parents': [f"{os.environ['PROTEST_FOLDER_ID']}"],
+                'parents': [f"{config.PROTEST_FOLDER_ID}"],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
         else:
@@ -376,9 +381,9 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         service = build('drive', 'v3', credentials=creds)
 
         # pylint: disable=maybe-no-member
-        if os.environ['PROTEST_FOLDER_ID']:
+        if config.PROTEST_FOLDER_ID:
             query = f"mimeType='application/vnd.google-apps.folder' and \
-                ('{os.environ['PROTEST_FOLDER_ID']}' in parents) and \
+                ('{config.PROTEST_FOLDER_ID}' in parents) and \
                 trashed=false"
         else:
             query = "mimeType='application/vnd.google-apps.folder' and trashed=false"
