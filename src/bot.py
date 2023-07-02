@@ -42,6 +42,7 @@ async def _upload_document_file(
             logging.error("Could not find or create protest folders.")
             await context.bot.send_message(
                 chat_id=update.effective_chat.id,
+                reply_to_message_id=update.effective_message.id,
                 text="bot received document file but could not create protest folders. \
                 Please try again. If the error persits contact it@letztegeneration.at."
             )
@@ -55,10 +56,6 @@ async def _upload_document_file(
             document_filename = update.effective_message.document.file_name
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
-            await context.bot.send_message(
-                chat_id=update.effective_chat.id,
-                text="bot received document file"
-            )
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error) 
@@ -82,6 +79,7 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A compressed photo is received. Send a message back to the sender."""
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
+        reply_to_message_id=update.effective_message.id,
         text="""Please send the photo as attachment.
  This can be done by uncheking the \"Compress the photo\" 
  checkbox before sending the message."""
@@ -91,6 +89,7 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """A compressed video is received. Send a message back to the sender."""
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
+        reply_to_message_id=update.effective_message.id,
         text="""Please send the video as attachment.
  This can be done by uncheking the \"Compress the video\" 
  checkbox before sending the message."""
