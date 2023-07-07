@@ -29,10 +29,12 @@ You get your Telegram API Token from BotFather.
 ## Environment Variables
 Environment variables are used to store API tokens.
 
-TELEGRAM_API_TOKEN ... the token from Botfather for the Telgram API
+### TELEGRAM_API_TOKEN 
+The token from Botfather for the Telgram API
 
-possible needed in the future:
-LOCATION_IQ_API_TOKEN ... token for Location IQ API get the location of a pictures or videos
+### LOCATION_IQ_API_TOKEN 
+Token for Location IQ API get the location of a pictures or videos.
+Possibly needed in the future.
 
 ## Telegram Token API 
 
@@ -48,3 +50,18 @@ Should be handeled with Service Account in the future.
 
 Location IQ could be used in the future to get the location of a picture or video taken by its longitude and latitude.
 
+## Dokcer
+
+Build
+```console
+docker build . -t lastgenat/telegram-bot-google-drive:tag
+```
+
+Build and compose 
+```console
+docker compose up --build telegram-bot-google-drive
+```
+Push to Hub
+```console
+docker push lastgenat/telegram-bot-google-drive:tag
+```
