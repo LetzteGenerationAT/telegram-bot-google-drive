@@ -4,10 +4,10 @@ Call the Google Drive API
 from __future__ import print_function
 
 import logging
-
-
 import os.path
 import datetime
+from datetime import timedelta
+import json
 
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials as SaCredentials
@@ -19,11 +19,11 @@ from googleapiclient.http import MediaInMemoryUpload
 
 # pylint: disable=import-error
 import pytz
-import config
 from enums import Media
 import helper
-from datetime import timedelta
 
+with open("config/config.json", "r", encoding="utf-8") as file:
+    config = json.load(file)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -63,29 +63,33 @@ def _get_credentials() -> Credentials:
     Create credentials. If a token exists use the existing token.
     """
     creds = None
-    if config.USE_SERVICE_ACCOUNT:
-        if os.path.exists('sa.json'):
-            creds = SaCredentials.from_service_account_file('sa.json', scopes=SCOPES)
+    if config["USE_SERVICE_ACCOUNT"]:
+        if os.path.exists('config/sa.json'):
+            creds = SaCredentials.from_service_account_file('config/sa.json', scopes=SCOPES)
     else:
         # The file token.json stores the user's access and refresh tokens, and is
         # created automatically when the authorization flow completes for the first
         # time.
-        if os.path.exists('token.json'):
-            creds = Credentials.from_authorized_user_file('token.json', SCOPES)
+        if os.path.exists('config/token.json'):
+            creds = Credentials.from_authorized_user_file('config/token.json', SCOPES)
         # If there are no (valid) credentials available, let the user log in.
         if not creds or not creds.valid:
             if creds and creds.expired and creds.refresh_token:
                 creds.refresh(Request())
             else:
                 flow = InstalledAppFlow.from_client_secrets_file(
-                    'credentials.json', SCOPES)
+                    'config/credentials.json', SCOPES)
                 creds = flow.run_local_server(port=0)
             # Save the credentials for the next run
-            with open('token.json', 'w', encoding="utf8") as token:
+            with open('config/token.json', 'w', encoding="utf8") as token:
                 token.write(creds.to_json())
     return creds
 
-def upload_file_to_folder(name: str, file_bytes: bytes, protest_folders: ProtestFolder, media_type: Media):
+def upload_file_to_folder(
+        name: str, file_bytes: bytes, 
+        protest_folders: ProtestFolder, 
+        media_type: Media
+    ):
     """Upload a file to the specified folder and prints file ID, folder ID
     Args: Id of the folder
     Returns: ID of the file uploaded
@@ -156,7 +160,7 @@ def upload_file_to_folder(name: str, file_bytes: bytes, protest_folders: Protest
     except TypeError as error:
         print(F'An error occurred: {error}')
         return None
-    
+
 def _create_tickerbiene_folder(service, username: str, ticker_folder_id):
     #create subfolder for Tickerbiene
     file_metadata = {
@@ -215,10 +219,10 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         # create drive api client
         service = build('drive', 'v3', credentials=creds)
         # create parent folder
-        if config.PROTEST_FOLDER_ID:
+        if config["PROTEST_FOLDER_ID"]:
             file_metadata = {
                 'name': name,
-                'parents': [f"{config.PROTEST_FOLDER_ID}"],
+                'parents': [f"{config['PROTEST_FOLDER_ID']}"],
                 'mimeType': 'application/vnd.google-apps.folder'
             }
         else:
@@ -381,9 +385,9 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         service = build('drive', 'v3', credentials=creds)
 
         # pylint: disable=maybe-no-member
-        if config.PROTEST_FOLDER_ID:
+        if config["PROTEST_FOLDER_ID"]:
             query = f"mimeType='application/vnd.google-apps.folder' and \
-                ('{config.PROTEST_FOLDER_ID}' in parents) and \
+                ('{config['PROTEST_FOLDER_ID']}' in parents) and \
                 trashed=false"
         else:
             query = "mimeType='application/vnd.google-apps.folder' and trashed=false"
@@ -394,9 +398,9 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
             supportsAllDrives=True).execute()
         folders = results.get('files', [])
 
-        tz_date = date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+        tz_date = date.replace(tzinfo=pytz.timezone(config["TIMEZONE"])).astimezone()
         date = date + timedelta(minutes=5)
-        if helper.is_dst(pytz.timezone(config.TIMEZONE)):
+        if helper.is_dst(pytz.timezone(config["TIMEZONE"])):
             tz_date = tz_date + timedelta(hours=1)
 
         logging.debug('Files:')

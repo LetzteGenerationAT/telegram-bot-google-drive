@@ -1,19 +1,23 @@
-'''
+"""
 Telegram bot to automatically upload files from a telegram group to google drive
-'''
+"""
 import logging
 import os
 from datetime import timedelta
-import helper
+import json
+
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
+
 # pylint: disable=import-error
 import pytz
+import helper
 from enums import Media
-import config
 import drive
 import maps
 
+with open("config/config.json", "r", encoding="utf-8") as file:
+    config = json.load(file)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -23,11 +27,11 @@ logging.basicConfig(
 async def _download_document_file(update: Update) -> bytes:
     try:
         file = await update.effective_message.document.get_file()
-        ba = await file.download_as_bytearray()
-        return bytes(ba)
+        downloaded_file = await file.download_as_bytearray()
+        return bytes(downloaded_file)
     except Exception as error:
         # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error) 
+        logging.error('An error occurred: %s',error)
 
 async def _upload_document_file(
         protest_folders,
@@ -41,16 +45,16 @@ async def _upload_document_file(
         if protest_folders is None:
             logging.error("Could not find or create protest folders.")
             await context.bot.send_message(
-                chat_id=update.effective_chat.id,
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
                 reply_to_message_id=update.effective_message.id,
                 text="bot received document file but could not create protest folders. \
                 Please try again. If the error persits contact it@letztegeneration.at."
             )
-            return
         else:
-            date = update.effective_message.date.replace(tzinfo=pytz.timezone(config.TIMEZONE)).astimezone()
+            tzinfo = pytz.timezone(config["TIMEZONE"])
+            date = update.effective_message.date.replace(tzinfo=tzinfo).astimezone()
             date = date + timedelta(minutes=5)
-            if helper.is_dst(pytz.timezone(config.TIMEZONE)):
+            if helper.is_dst(tzinfo):
                 date = date + timedelta(hours=1)
             username = update.effective_message.from_user.username
             document_filename = update.effective_message.document.file_name
@@ -58,41 +62,66 @@ async def _upload_document_file(
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
     except Exception as error:
         # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error) 
+        logging.error('An error occurred: %s',error)
+        await context.bot.send_message(
+            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+            text=f"Cloud not save *{media_type}* \
+from https://t.me/{update.effective_user.username} \
+({update.effective_user.first_name} \
+{update.effective_user.last_name}) \
+because {error}.",
+        parse_mode="markdown"
+        )
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
     file_bytes = await _download_document_file(update)
-    protest_folders = drive.manage_folder(update.effective_message.date, update.effective_user.username)
+    username = update.effective_user.username
+    date = update.effective_message.date
+    protest_folders = drive.manage_folder(date, username)
     # Upload image to drive
     await _upload_document_file(protest_folders, file_bytes, update, context, Media.IMAGE)
-    
 
 async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """An uncompressed video is received as attachment. Upload the video to google drive."""
+    """
+    An uncompressed video is received as attachment. 
+    Upload the video to google drive.
+    """
     file_bytes = await _download_document_file(update)
-    protest_folders = drive.manage_folder(update.effective_message.date, update.effective_user.username)
+    username = update.effective_user.username
+    date = update.effective_message.date
+    protest_folders = drive.manage_folder(date, username)
     # Upload video to drive
     await _upload_document_file(protest_folders, file_bytes, update, context, Media.VIDEO)
 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """A compressed photo is received. Send a message back to the sender."""
+    """
+    A compressed photo is received. 
+    Send a message back to the sender.
+    """
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        reply_to_message_id=update.effective_message.id,
-        text="""Please send the photo as attachment.
- This can be done by uncheking the \"Compress the photo\" 
- checkbox before sending the message."""
+        chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+        text=f"Cloud not save *photo* \
+from https://t.me/{update.effective_user.username} \
+({update.effective_user.first_name} \
+{update.effective_user.last_name}) \
+because it is compressed.",
+        parse_mode="markdown"
     )
 
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """A compressed video is received. Send a message back to the sender."""
+    """
+    A compressed video is received. 
+    Send a message back to the sender.
+    """
     await context.bot.send_message(
-        chat_id=update.effective_chat.id,
-        reply_to_message_id=update.effective_message.id,
-        text="""Please send the video as attachment.
- This can be done by uncheking the \"Compress the video\" 
- checkbox before sending the message."""
+        chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+        text=f"Cloud not save *video* \
+from https://t.me/{update.effective_user.username} \
+({update.effective_user.first_name} \
+{update.effective_user.last_name}) \
+because it is compressed.",
+        parse_mode="markdown"
     )
 
 async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -100,12 +129,15 @@ async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     Demo for locaiton service.
     """
     message_location = maps.get_location(
-        update.effective_message.location.latitude, 
+        update.effective_message.location.latitude,
         update.effective_message.location.longitude
     )
     print(message_location)
 
 def main():
+    """
+    Create Telegram bot, add handler and run polling.
+    """
     app = ApplicationBuilder().token(os.environ['TELEGRAM_API_TOKEN']).build()
 
     document_image_handler = MessageHandler(filters.Document.IMAGE, document_image)

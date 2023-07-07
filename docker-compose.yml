@@ -9,9 +9,7 @@ services:
     volumes:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
-      - ./sa.json:/app/sa.json
-      - ./credentials.json:/app/credentials.json
-      - ./token.json:/app/token.json
+      - ./config:/app/config
     environment:
       - TELEGRAM_API_TOKEN
       - LOCATION_IQ_API_TOKEN
