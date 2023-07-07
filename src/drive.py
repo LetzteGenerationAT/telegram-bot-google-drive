@@ -403,12 +403,13 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         for folder in folders:
             logging.debug("%s (%s)", folder['name'],folder['id'])
             fodler_name_date = folder['name'].split(' ')[0]
-            if fodler_name_date == tz_date.date().isoformat():
+            folder_name = folder['name'].split(' ')[1]
+            if fodler_name_date == tz_date.date().isoformat() and folder_name == "Bot":
                 return search_protest_folder(folder['id'], username)
         if location is None:
-            name = tz_date.date().isoformat()
+            name = f"{tz_date.date().isoformat()} Bot"
         else:
-            name = f"{tz_date.date().isoformat()} {location}"
+            name = f"{tz_date.date().isoformat()} Bot {location} "
         protest_folder = create_folder(name, username)
 
         return protest_folder
