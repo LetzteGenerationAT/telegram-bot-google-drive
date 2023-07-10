@@ -24,6 +24,12 @@ logging.basicConfig(
     level=logging.INFO
 )
 
+def _get_username(update: Update)-> str:
+    username = update.effective_message.from_user.username
+    if username is None:
+        username = update.effective_message.from_user.first_name
+    return username
+
 async def _download_document_file(update: Update) -> bytes:
     try:
         file = await update.effective_message.document.get_file()
@@ -56,7 +62,7 @@ async def _upload_document_file(
             date = date + timedelta(minutes=5)
             if helper.is_dst(tzinfo):
                 date = date + timedelta(hours=1)
-            username = update.effective_message.from_user.username
+            username = _get_username(update)
             document_filename = update.effective_message.document.file_name
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
@@ -76,7 +82,7 @@ because {error}.",
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
     file_bytes = await _download_document_file(update)
-    username = update.effective_user.username
+    username = _get_username(update)
     date = update.effective_message.date
     protest_folders = drive.manage_folder(date, username)
     # Upload image to drive
@@ -88,7 +94,7 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     Upload the video to google drive.
     """
     file_bytes = await _download_document_file(update)
-    username = update.effective_user.username
+    username = _get_username(update)
     date = update.effective_message.date
     protest_folders = drive.manage_folder(date, username)
     # Upload video to drive
