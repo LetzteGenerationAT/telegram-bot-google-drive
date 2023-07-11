@@ -85,6 +85,33 @@ def _get_credentials() -> Credentials:
                 token.write(creds.to_json())
     return creds
 
+def _loop_query(query: str) -> any:
+        creds = _get_credentials()
+
+        service = build('drive', 'v3', credentials=creds)
+
+        # pylint: disable=maybe-no-member
+        results = service.files().list(
+            q=query,
+            pageSize=100, fields="nextPageToken, files(id, name)",
+            includeItemsFromAllDrives=True,
+            supportsAllDrives=True,
+        ).execute()
+        next_page_token = results.get("nextPageToken", None)
+        logging.debug(next_page_token)
+        folders = results.get('files', [])
+
+        while next_page_token is not None:
+            results = service.files().list(
+                q=query,
+                pageToken=next_page_token, fields="nextPageToken, files(id, name)",
+                includeItemsFromAllDrives=True,
+                supportsAllDrives=True
+            ).execute()
+            next_page_token = results.get("nextPageToken", None)
+            folders.extend(results.get('files', []))
+        return folders
+
 def upload_file_to_folder(
         name: str, file_bytes: bytes, 
         protest_folders: ProtestFolder, 
@@ -309,21 +336,12 @@ def search_protest_folder(parent_id, username: str)-> ProtestFolder:
 
     protest_folder = ProtestFolder(parent_id)
 
-    creds = _get_credentials()
-
     try:
-        service = build('drive', 'v3', credentials=creds)
 
-        # pylint: disable=maybe-no-member
-        results = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.folder' and \
+        query = f"mimeType='application/vnd.google-apps.folder' and \
                 ('{parent_id}' in parents) and \
-                trashed=false",
-            pageSize=10, fields="nextPageToken, files(id, name)",
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
-            ).execute()
-        folders = results.get('files', [])
+                trashed=false"
+        folders = _loop_query(query)
         
         for folder in folders:
             logging.debug("%s (%s)", folder['name'],folder['id'])
@@ -334,15 +352,11 @@ def search_protest_folder(parent_id, username: str)-> ProtestFolder:
             if folder['name'] == TICKERBIENEN:
                 protest_folder.tickerbienen_folder_id = folder['id']
 
-        results = service.files().list(
-            q=f"mimeType='application/vnd.google-apps.folder' and \
+        query = f"mimeType='application/vnd.google-apps.folder' and \
                 ('{protest_folder.tickerbienen_folder_id}' in parents) and \
-                trashed=false",
-            pageSize=10, fields="nextPageToken, files(id, name)",
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
-            ).execute()
-        folders = results.get('files', [])
+                trashed=false"
+        folders = _loop_query(query)
+
         for folder in folders:
             logging.debug("%s (%s)", folder['name'],folder['id'])
             if folder['name'] == username:
@@ -353,15 +367,11 @@ def search_protest_folder(parent_id, username: str)-> ProtestFolder:
             protest_folder.tickerbiene_bilder_folder_id = ticker_image_folder_id
             protest_folder.tickerbiene_videos_folder_id = ticker_videos_folder_id
         else:
-            results = service.files().list(
-                q=f"mimeType='application/vnd.google-apps.folder' and \
+            query = f"mimeType='application/vnd.google-apps.folder' and \
                     ('{protest_folder.tickerbiene_folder_id}' in parents) and \
-                    trashed=false",
-                pageSize=10, fields="nextPageToken, files(id, name)",
-                includeItemsFromAllDrives=True,
-                supportsAllDrives=True,
-                ).execute()
-            folders = results.get('files', [])
+                    trashed=false"
+            folders = _loop_query(query)
+
             for folder in folders:
                 logging.debug("%s (%s)", folder['name'],folder['id'])
                 if folder['name'] == BILDER:
@@ -380,10 +390,7 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
     in the Subfolder ./Pressemitteilungen/Protest
     Returns : Folder Id
     """
-    creds = _get_credentials()
     try:
-        service = build('drive', 'v3', credentials=creds)
-
         # pylint: disable=maybe-no-member
         if config["PROTEST_FOLDER_ID"]:
             query = f"mimeType='application/vnd.google-apps.folder' and \
@@ -391,12 +398,9 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
                 trashed=false"
         else:
             query = "mimeType='application/vnd.google-apps.folder' and trashed=false"
-        results = service.files().list(
-            q=query,
-            pageSize=10, fields="nextPageToken, files(id, name)",
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True).execute()
-        folders = results.get('files', [])
+
+        folders = _loop_query(query)
+
 
         tz_date = date.replace(tzinfo=pytz.timezone(config["TIMEZONE"])).astimezone()
         date = date + timedelta(minutes=5)
@@ -405,9 +409,15 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
 
         logging.debug('Files:')
         for folder in folders:
-            logging.debug("%s (%s)", folder['name'],folder['id'])
-            fodler_name_date = folder['name'].split(' ')[0]
-            folder_name = folder['name'].split(' ')[1]
+            logging.debug("%s (%s)", folder['name'], folder['id'])
+            folder_name_split = folder['name'].split(' ')
+            fodler_name_date = folder_name_split[0]
+            # Check if the folder was created by the bot. 
+            # If the folder has no name assume the folder was not created by the bot
+            if len(folder_name_split) > 1:
+                folder_name = folder_name_split[1]
+            else:
+                folder_name = ""
             if fodler_name_date == tz_date.date().isoformat() and folder_name == "Bot":
                 return search_protest_folder(folder['id'], username)
         if location is None:
@@ -421,19 +431,12 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         # TODO(developer) - Handle errors from drive API.
         logging.error('An error occurred: %s',error)
 
-
+QUERRY_MAIN = "mimeType='application/vnd.google-apps.folder' and trashed=false"
 if __name__ == '__main__':
-    creds_main = _get_credentials()
     try:
-        service_main = build('drive', 'v3', credentials=creds_main)
 
         # pylint: disable=maybe-no-member
-        results_main = service_main.files().list(
-            q="mimeType='application/vnd.google-apps.folder' and trashed=false",
-            pageSize=10, fields="nextPageToken, files(id, name)",
-            includeItemsFromAllDrives=True,
-            supportsAllDrives=True, ).execute()
-        folders_main = results_main.get('files', [])
+        folders_main = _loop_query(QUERRY_MAIN)
 
         if not folders_main:
             logging.warning('No folder found.')
