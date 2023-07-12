@@ -3,5 +3,5 @@
     "ERROR_MESSAGE_CHAT_ID": "-982575295",
     "TIMEZONE": "Europe/Vienna",
     "USE_SERVICE_ACCOUNT": false,
-    "LogLevel": "Info"
+    "LogLevel": "INFO"
 }

@@ -24,6 +24,7 @@ services:
       - /etc/timezone:/etc/timezone:ro
       - /etc/localtime:/etc/localtime:ro
       - ./config:/app/config
+      - ./telegram-bot-api-data:/var/lib/telegram-bot-api
     environment:
         # url + port
       - BASE_URL

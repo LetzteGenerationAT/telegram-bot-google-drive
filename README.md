@@ -1,7 +1,5 @@
 ﻿# telegram-bot-google-drive
 
-# telegram-bot-google-drive
-
 ## Getting Started 
 
 Create a virtual python environment
@@ -55,6 +53,15 @@ Should be handeled with Service Account in the future.
 ## Location IQ API Token
 
 Location IQ could be used in the future to get the location of a picture or video taken by its longitude and latitude.
+
+# Telegram Bot API
+File download functions (download_as_bytearray, download_to_drive, download_to_memory) of the (python-telegram-bot)[https://docs.python-telegram-bot.org/en/stable/index.html] library won't work anymore when using the local telegram-bot-api. The files should be loaded from the filesystem instead. Hence use a shared volume for all container which want to access the telegram-bot-api's data folder.
+
+To use a shared volume be aware of the permissions of the telegram-bot-api's data folder. The telegram-bot-api is deployed in its own docker container. The data (images, videos) of the telegram-bot-api are saved to the mounted volume folder. This folder's owner's group id (101) needs to be added as group id to every docker image user who wants to access this folder.
+
+The port of the telegram-bot-api needs to be opened to be used by telegram bots.
+
+
 
 ## Dokcer
 
