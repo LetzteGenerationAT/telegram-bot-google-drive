@@ -36,6 +36,12 @@ The token from Botfather for the Telgram API
 Token for Location IQ API get the location of a pictures or videos.
 Possibly needed in the future.
 
+###  TELEGRAM_API_ID 
+Token for the local API, get it from [here](https://core.telegram.org/api/obtaining_api_id)
+
+###  TELEGRAM_API_HASH 
+Hash for the local API, get it from [here](https://core.telegram.org/api/obtaining_api_id)
+
 ## Telegram Token API 
 
 You need an API Token for Telegram. Such a token can be created with the @Botfather bot from telegram. The bot needs to turn off group privacy mode.

@@ -22,7 +22,7 @@ with open("config/config.json", "r", encoding="utf-8") as config_file:
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.getLevelName(config.LogLevel)
 )
 
 def _get_date(update: Update) -> datetime:
@@ -188,7 +188,10 @@ def main():
     """
     Create Telegram bot, add handler and run polling.
     """
-    app = ApplicationBuilder().token(os.environ['TELEGRAM_API_TOKEN']).build()
+    app = ApplicationBuilder()\
+        .token(os.environ['TELEGRAM_API_TOKEN'])\
+            .local_mode(True).base_url(f"http://{os.environ['BASE_URL']}/bot")\
+                .base_file_url(f"http://{os.environ['BASE_URL']}/bot").build()
 
     document_image_handler = MessageHandler(filters.Document.IMAGE, document_image)
     document_video_handler = MessageHandler(filters.Document.VIDEO, document_video)

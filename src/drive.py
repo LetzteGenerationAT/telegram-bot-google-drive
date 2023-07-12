@@ -27,7 +27,7 @@ with open("config/config.json", "r", encoding="utf-8") as file:
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.getLevelName(config.LogLevel)
 )
 
 # If modifying these scopes, delete the file token.json.
@@ -129,20 +129,28 @@ def upload_file_to_folder(
 
         if media_type is Media.IMAGE:
             # Upload to Bilder
+            file_format = name.rsplit('.',1)[-1]
+            if file_format == name:
+                file_format="jpg"
             file_metadata = {
                 'name': name,
                 'parents': [protest_folders.bilder_folder_id]
             }
+            media = MediaInMemoryUpload(file_bytes,
+                                    mimetype=f'image/{file_format}', resumable=True)
         elif media_type is Media.VIDEO:
             # Upload to Videos
+            file_format = name.rsplit('.',1)[-1]
+            if file_format == name:
+                file_format="mp4"
             file_metadata = {
                 'name': name,
                 'parents': [protest_folders.videos_folder_id]
             }
+            media = MediaInMemoryUpload(file_bytes,
+                        mimetype=f'video/{file_format}', resumable=True)
         else: raise TypeError('Cloud not find Media type', media_type)
 
-        media = MediaInMemoryUpload(file_bytes,
-                                mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         uploaded_file = service.files().create(
             body=file_metadata, 
@@ -156,16 +164,10 @@ def upload_file_to_folder(
         # Upload to Tickerbienen
         if media_type is Media.IMAGE:
             # Upload to Bilder
-            file_metadata = {
-                'name': name,
-                'parents': [protest_folders.tickerbiene_bilder_folder_id]
-            }
+            file_metadata['parents'] = [protest_folders.tickerbiene_bilder_folder_id]
         elif media_type is Media.VIDEO:
             # Upload to Videos
-            file_metadata = {
-                'name': name,
-                'parents': [protest_folders.tickerbiene_videos_folder_id]
-            }
+            file_metadata['parents'] = [protest_folders.tickerbiene_videos_folder_id]
         else: raise TypeError('Cloud not find Media type', media_type)
         media = MediaInMemoryUpload(file_bytes,
                                 mimetype='image/jpeg', resumable=True)
