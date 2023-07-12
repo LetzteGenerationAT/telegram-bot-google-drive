@@ -1,7 +1,5 @@
 ﻿# telegram-bot-google-drive
 
-# telegram-bot-google-drive
-
 ## Getting Started 
 
 Create a virtual python environment
