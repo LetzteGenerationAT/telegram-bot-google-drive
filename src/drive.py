@@ -27,7 +27,7 @@ with open("config/config.json", "r", encoding="utf-8") as file:
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.getLevelName(config.LogLevel)
+    level=logging.getLevelName(config["LogLevel"])
 )
 
 # If modifying these scopes, delete the file token.json.
@@ -86,35 +86,35 @@ def _get_credentials() -> Credentials:
     return creds
 
 def _loop_query(query: str) -> any:
-        creds = _get_credentials()
+    creds = _get_credentials()
 
-        service = build('drive', 'v3', credentials=creds)
+    service = build('drive', 'v3', credentials=creds)
 
-        # pylint: disable=maybe-no-member
+    # pylint: disable=maybe-no-member
+    results = service.files().list(
+        q=query,
+        pageSize=100, fields="nextPageToken, files(id, name)",
+        includeItemsFromAllDrives=True,
+        supportsAllDrives=True,
+    ).execute()
+    next_page_token = results.get("nextPageToken", None)
+    logging.debug(next_page_token)
+    folders = results.get('files', [])
+
+    while next_page_token is not None:
         results = service.files().list(
             q=query,
-            pageSize=100, fields="nextPageToken, files(id, name)",
+            pageToken=next_page_token, fields="nextPageToken, files(id, name)",
             includeItemsFromAllDrives=True,
-            supportsAllDrives=True,
+            supportsAllDrives=True
         ).execute()
         next_page_token = results.get("nextPageToken", None)
-        logging.debug(next_page_token)
-        folders = results.get('files', [])
-
-        while next_page_token is not None:
-            results = service.files().list(
-                q=query,
-                pageToken=next_page_token, fields="nextPageToken, files(id, name)",
-                includeItemsFromAllDrives=True,
-                supportsAllDrives=True
-            ).execute()
-            next_page_token = results.get("nextPageToken", None)
-            folders.extend(results.get('files', []))
-        return folders
+        folders.extend(results.get('files', []))
+    return folders
 
 def upload_file_to_folder(
-        name: str, file_bytes: bytes, 
-        protest_folders: ProtestFolder, 
+        name: str, file_bytes: bytes,
+        protest_folders: ProtestFolder,
         media_type: Media
     ):
     """Upload a file to the specified folder and prints file ID, folder ID
@@ -153,7 +153,7 @@ def upload_file_to_folder(
 
         # pylint: disable=maybe-no-member
         uploaded_file = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             media_body=media,
             fields='id',
             supportsAllDrives=True
@@ -173,7 +173,7 @@ def upload_file_to_folder(
                                 mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         uploaded_ticker_file = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             media_body=media,
             fields='id',
             supportsAllDrives=True
@@ -190,16 +190,20 @@ def upload_file_to_folder(
         print(F'An error occurred: {error}')
         return None
 
-def _create_tickerbiene_folder(service, username: str, ticker_folder_id):
+def _create_tickerbiene_folder(username: str, ticker_folder_id):
     #create subfolder for Tickerbiene
     file_metadata = {
         'name': username,
         'parents': [ticker_folder_id],
         'mimeType': 'application/vnd.google-apps.folder'
     }
+
+    creds = _get_credentials()
+    service = build('drive', 'v3', credentials=creds)
+
     # pylint: disable=maybe-no-member
     ticker_biene_folder = service.files().create(
-        body=file_metadata, 
+        body=file_metadata,
         fields='id',
         supportsAllDrives=True
     ).execute()
@@ -214,7 +218,7 @@ def _create_tickerbiene_folder(service, username: str, ticker_folder_id):
     }
     # pylint: disable=maybe-no-member
     ticker_image_folder = service.files().create(
-        body=file_metadata, 
+        body=file_metadata,
         fields='id',
         supportsAllDrives=True
     ).execute()
@@ -229,7 +233,7 @@ def _create_tickerbiene_folder(service, username: str, ticker_folder_id):
     }
     # pylint: disable=maybe-no-member
     ticker_videos_folder = service.files().create(
-        body=file_metadata, 
+        body=file_metadata,
         fields='id',
         supportsAllDrives=True
     ).execute()
@@ -263,7 +267,7 @@ def create_folder(name: str, username: str) -> ProtestFolder:
 
         # pylint: disable=maybe-no-member
         parent_folder = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             fields='id',
             supportsAllDrives=True
         ).execute()
@@ -278,7 +282,7 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         }
         # pylint: disable=maybe-no-member
         image_folder = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             fields='id',
             supportsAllDrives=True
         ).execute()
@@ -293,7 +297,7 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         }
         # pylint: disable=maybe-no-member
         videos_folder = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             fields='id',
             supportsAllDrives=True
         ).execute()
@@ -308,23 +312,26 @@ def create_folder(name: str, username: str) -> ProtestFolder:
         }
         # pylint: disable=maybe-no-member
         ticker_folder = service.files().create(
-            body=file_metadata, 
+            body=file_metadata,
             fields='id',
             supportsAllDrives=True
         ).execute()
         ticker_folder_id = ticker_folder.get('id')
         logging.debug('ticker folder ID: "%s".', ticker_folder_id)
 
-        ticker_biene_folder_id, ticker_image_folder_id, ticker_videos_folder_id =_create_tickerbiene_folder(service, username, ticker_folder_id)
+        tb_folder_id, ti_folder_id, tv_folder_id =_create_tickerbiene_folder(
+            username, 
+            ticker_folder_id
+        )
 
         return ProtestFolder(
             parent_folder_id,
             image_folder_id,
             videos_folder_id,
             ticker_folder_id,
-            ticker_biene_folder_id,
-            ticker_image_folder_id,
-            ticker_videos_folder_id
+            tb_folder_id,
+            ti_folder_id,
+            tv_folder_id
         )
 
     except HttpError as error:
@@ -364,10 +371,13 @@ def search_protest_folder(parent_id, username: str)-> ProtestFolder:
             if folder['name'] == username:
                 protest_folder.tickerbiene_folder_id = folder['id']
         if protest_folder.tickerbiene_folder_id  == "":
-            ticker_biene_folder_id, ticker_image_folder_id, ticker_videos_folder_id = _create_tickerbiene_folder(service, username, protest_folder.tickerbienen_folder_id)
-            protest_folder.tickerbiene_folder_id = ticker_biene_folder_id
-            protest_folder.tickerbiene_bilder_folder_id = ticker_image_folder_id
-            protest_folder.tickerbiene_videos_folder_id = ticker_videos_folder_id
+            tb_folder_id, ti_folder_id, tv_folder_id = _create_tickerbiene_folder(
+                username, 
+                protest_folder.tickerbienen_folder_id
+            )
+            protest_folder.tickerbiene_folder_id = tb_folder_id
+            protest_folder.tickerbiene_bilder_folder_id = ti_folder_id
+            protest_folder.tickerbiene_videos_folder_id = tv_folder_id
         else:
             query = f"mimeType='application/vnd.google-apps.folder' and \
                     ('{protest_folder.tickerbiene_folder_id}' in parents) and \
@@ -414,7 +424,7 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
             logging.debug("%s (%s)", folder['name'], folder['id'])
             folder_name_split = folder['name'].split(' ')
             fodler_name_date = folder_name_split[0]
-            # Check if the folder was created by the bot. 
+            # Check if the folder was created by the bot.
             # If the folder has no name assume the folder was not created by the bot
             if len(folder_name_split) > 1:
                 folder_name = folder_name_split[1]
@@ -445,6 +455,6 @@ if __name__ == '__main__':
         logging.info('Files:')
         for folder_main in folders_main:
             logging.info("%s (%s)", folder_main['name'],folder_main['id'])
-    except HttpError as error:
+    except HttpError as main_http_error:
         # TODO(developer) - Handle errors from drive API.
-        logging.error('An error occurred: %s',error)
+        logging.error('An error occurred: %s',main_http_error)

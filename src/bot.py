@@ -22,7 +22,7 @@ with open("config/config.json", "r", encoding="utf-8") as config_file:
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.getLevelName(config.LogLevel)
+    level=logging.getLevelName(config["LogLevel"])
 )
 
 def _get_date(update: Update) -> datetime:
@@ -59,9 +59,10 @@ def _get_username(update: Update)-> str:
 
 async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
     try:
-        file = await update.effective_message.video.get_file()
-        downloaded_file = await file.download_as_bytearray()
-        return bytes(downloaded_file)
+        video_file = await update.effective_message.video.get_file()
+        with open(video_file.file_path, "rb") as video_stream:
+            downloaded_file = video_stream.read()
+        return downloaded_file
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error)
@@ -74,9 +75,10 @@ async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def _download_document_file(update: Update) -> bytes:
     try:
-        file = await update.effective_message.document.get_file()
-        downloaded_file = await file.download_as_bytearray()
-        return bytes(downloaded_file)
+        document_file = await update.effective_message.document.get_file()
+        with open(document_file.file_path, "rb") as document_stream:
+            downloaded_file = document_stream.read()
+        return downloaded_file
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error)
