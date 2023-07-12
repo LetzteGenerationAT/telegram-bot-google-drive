@@ -25,5 +25,7 @@ services:
       - /etc/localtime:/etc/localtime:ro
       - ./config:/app/config
     environment:
+        # url + port
+      - BASE_URL
       - TELEGRAM_API_TOKEN
       - LOCATION_IQ_API_TOKEN

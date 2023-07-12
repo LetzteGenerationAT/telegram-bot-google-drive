@@ -188,7 +188,10 @@ def main():
     """
     Create Telegram bot, add handler and run polling.
     """
-    app = ApplicationBuilder().token(os.environ['TELEGRAM_API_TOKEN']).local_mode(True).build()
+    app = ApplicationBuilder()\
+        .token(os.environ['TELEGRAM_API_TOKEN'])\
+            .local_mode(True).base_url(f"http://{os.environ['BASE_URL']}/bot")\
+                .base_file_url(f"http://{os.environ['BASE_URL']}/bot").build()
 
     document_image_handler = MessageHandler(filters.Document.IMAGE, document_image)
     document_video_handler = MessageHandler(filters.Document.VIDEO, document_video)
