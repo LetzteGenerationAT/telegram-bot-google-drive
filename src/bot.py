@@ -22,7 +22,7 @@ with open("config/config.json", "r", encoding="utf-8") as config_file:
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
+    level=logging.getLevelName(config.LogLevel)
 )
 
 def _get_date(update: Update) -> datetime:
