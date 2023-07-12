@@ -130,8 +130,9 @@ def upload_file_to_folder(
         if media_type is Media.IMAGE:
             # Upload to Bilder
             file_format = name.rsplit('.',1)[-1]
-            if file_format == name:
+            if file_format == name or name == "None":
                 file_format="jpg"
+                name = f"{name}.{file_format}"
             file_metadata = {
                 'name': name,
                 'parents': [protest_folders.bilder_folder_id]
@@ -141,8 +142,9 @@ def upload_file_to_folder(
         elif media_type is Media.VIDEO:
             # Upload to Videos
             file_format = name.rsplit('.',1)[-1]
-            if file_format == name:
+            if file_format == name or name == "None":
                 file_format="mp4"
+                name = f"{name}.{file_format}"
             file_metadata = {
                 'name': name,
                 'parents': [protest_folders.videos_folder_id]
@@ -165,12 +167,14 @@ def upload_file_to_folder(
         if media_type is Media.IMAGE:
             # Upload to Bilder
             file_metadata['parents'] = [protest_folders.tickerbiene_bilder_folder_id]
+            media = MediaInMemoryUpload(file_bytes,
+                mimetype=f'image/{file_format}', resumable=True)
         elif media_type is Media.VIDEO:
             # Upload to Videos
             file_metadata['parents'] = [protest_folders.tickerbiene_videos_folder_id]
+            media = MediaInMemoryUpload(file_bytes,
+                mimetype=f'video/{file_format}', resumable=True)
         else: raise TypeError('Cloud not find Media type', media_type)
-        media = MediaInMemoryUpload(file_bytes,
-                                mimetype='image/jpeg', resumable=True)
         # pylint: disable=maybe-no-member
         uploaded_ticker_file = service.files().create(
             body=file_metadata,
