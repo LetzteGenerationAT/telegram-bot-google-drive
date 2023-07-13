@@ -9,6 +9,9 @@ import datetime
 from datetime import timedelta
 import json
 
+# pylint: disable=import-error
+from worker import process
+
 from google.auth.transport.requests import Request
 from google.oauth2.service_account import Credentials as SaCredentials
 from google.oauth2.credentials import Credentials
@@ -112,6 +115,7 @@ def _loop_query(query: str) -> any:
         folders.extend(results.get('files', []))
     return folders
 
+@process
 def upload_file_to_folder(
         name: str, file_bytes: bytes,
         protest_folders: ProtestFolder,
@@ -184,6 +188,7 @@ def upload_file_to_folder(
             ).execute()
         uploaded_ticker_file_id = uploaded_ticker_file.get('id')
         logging.debug('File ID: "%s".' , uploaded_ticker_file_id)
+        logging.info("Finished upload  %s ", name)
 
         return uploaded_file_id, uploaded_ticker_file_id
 
