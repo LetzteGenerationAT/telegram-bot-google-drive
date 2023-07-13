@@ -7,6 +7,8 @@ from datetime import datetime
 from datetime import timedelta
 import json
 
+import asyncio
+
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
 
@@ -58,10 +60,12 @@ def _get_username(update: Update)-> str:
     return username
 
 async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
+    logging.info("Start downloading video")
     try:
         video_file = await update.effective_message.video.get_file()
         with open(video_file.file_path, "rb") as video_stream:
             downloaded_file = video_stream.read()
+        logging.info("Downloaded video")
         return downloaded_file
     except Exception as error:
         # TODO(developer) - Handle errors.
@@ -74,36 +78,40 @@ async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             )
 
 async def _download_document_file(update: Update) -> bytes:
+    logging.info("Start downloading document")
     try:
         document_file = await update.effective_message.document.get_file()
         with open(document_file.file_path, "rb") as document_stream:
             downloaded_file = document_stream.read()
+        logging.info("Downloaded document")
         return downloaded_file
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error)
 
-async def _upload_video(        
+async def _upload_video(
         protest_folders,
         file_bytes: bytes,
         update: Update,
         context: ContextTypes.DEFAULT_TYPE,
     ):
+    logging.info("Start uploading video.")
     try:
         # Handle error while creating or searching protest folder.
         if protest_folders is None:
             logging.error("Could not find or create protest folders.")
-            _send_no_protest_folder(context)
+            await _send_no_protest_folder(context)
         else:
             date = _get_date(update)
             username = _get_username(update)
             video_filename = update.effective_message.video.file_name
             file_name = f"{date.isoformat()}_{username}_{video_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, Media.VIDEO)
+            logging.info("Finished upload video %s process", file_name)
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error)
-        _send_could_not_save(update, context, error, Media.VIDEO)
+        await _send_could_not_save(update, context, error, Media.VIDEO)
 
 async def _upload_document_file(
         protest_folders,
@@ -112,26 +120,29 @@ async def _upload_document_file(
         context: ContextTypes.DEFAULT_TYPE,
         media_type: Media
     ):
+    logging.info("Start uploading document.")
     try:
         # Handle error while creating or searching protest folder.
         if protest_folders is None:
             logging.error("Could not find or create protest folders.")
-            _send_no_protest_folder(context)
+            await _send_no_protest_folder(context)
         else:
             date = _get_date(update)
             username = _get_username(update)
             document_filename = update.effective_message.document.file_name
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
+            logging.info("Finished upload document %s process", file_name)
     except Exception as error:
         # TODO(developer) - Handle errors.
         logging.error('An error occurred: %s',error)
-        _send_could_not_save(update, context, error, media_type)
+        await _send_could_not_save(update, context, error, media_type)
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
-    file_bytes = await _download_document_file(update)
     username = _get_username(update)
+    logging.info("Received document image from %s", username)
+    file_bytes = await _download_document_file(update)
     date = update.effective_message.date
     protest_folders = drive.manage_folder(date, username)
     # Upload image to drive
@@ -142,8 +153,9 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     An uncompressed video is received as attachment. 
     Upload the video to google drive.
     """
-    file_bytes = await _download_document_file(update)
     username = _get_username(update)
+    logging.info("Received document video from %s", username)
+    file_bytes = await _download_document_file(update)
     date = update.effective_message.date
     protest_folders = drive.manage_folder(date, username)
     # Upload video to drive
@@ -154,6 +166,8 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     A compressed photo is received. 
     Send a message back to the sender.
     """
+    username = _get_username(update)
+    logging.info("Received photo from %s", username)
     await context.bot.send_message(
         chat_id=config["ERROR_MESSAGE_CHAT_ID"],
         text=f"Cloud not save *photo* \
@@ -169,12 +183,14 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     A compressed video is received as attachment. 
     Upload the video to google drive.
     """
-    file_bytes = await _download_video(update, context)
     username = _get_username(update)
+    logging.info("Received video from %s", username)
+    file_bytes = await _download_video(update, context)
     date = update.effective_message.date
     protest_folders = drive.manage_folder(date, username)
     # Upload video to drive
     await _upload_video(protest_folders, file_bytes, update, context)
+
 
 async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -206,7 +222,7 @@ def main():
     app.add_handler(photo_handler)
     app.add_handler(video_hanlder)
 
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=600)
 
 if __name__ == '__main__':
     main()
