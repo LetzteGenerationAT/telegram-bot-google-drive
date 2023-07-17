@@ -70,13 +70,12 @@ def _get_username(update: Update)-> str:
     return username
 
 async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
-    logging.info("Start downloading video %s", update.effective_message.document.file_name)
+    logging.info("Start downloading video %s", update.effective_message.video.file_name)
     video_file = await update.effective_message.video.get_file()
     with open(video_file.file_path, "rb") as video_stream:
         downloaded_file = video_stream.read()
     logging.info("Downloaded video")
     return downloaded_file
-
 
 async def _download_document_file(update: Update) -> bytes:
     logging.info("Start downloading document %s", update.effective_message.document.file_name)
@@ -153,7 +152,7 @@ async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except Exception as ex:
         # TODO(developer) - Handle errors.
         logging.exception(ex)
-        _send_cloud_not_download(update, context, ex, Media.IMAGE)
+        await _send_cloud_not_download(update, context, ex, Media.IMAGE)
         return
     date = update.effective_message.date
     try:
@@ -181,7 +180,7 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     except Exception as ex:
         # TODO(developer) - Handle errors.
         logging.exception(ex)
-        _send_cloud_not_download(update, context, ex, Media.VIDEO)
+        await _send_cloud_not_download(update, context, ex, Media.VIDEO)
         return
     date = update.effective_message.date
     try:
@@ -278,7 +277,7 @@ def main():
     app.add_handler(photo_handler)
     app.add_handler(video_hanlder)
 
-    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=600)
+    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=600, read_timeout=600, connect_timeout=600, write_timeout=600, pool_timeout=600)
 
 if __name__ == '__main__':
     main()
