@@ -7,7 +7,7 @@ from datetime import datetime
 from datetime import timedelta
 import json
 
-import asyncio
+from googleapiclient.errors import HttpError
 
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
@@ -35,22 +35,32 @@ def _get_date(update: Update) -> datetime:
         date = date + timedelta(hours=1)
     return date
 
-async def _send_could_not_save(update: Update, context: ContextTypes.DEFAULT_TYPE, error: Exception, media_type: Media) -> None:
+async def _send_cloud_not_download(update: Update, context: ContextTypes.DEFAULT_TYPE, ex : Exception, media_type: Media) -> None:
+        await context.bot.send_message(
+            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+            text=f"Cloud not *download* {media_type} \
+from https://t.me/{update.effective_user.username} \
+({update.effective_user.first_name} \
+{update.effective_user.last_name} \
+because {ex}.",
+        parse_mode="markdown"
+        )
+
+async def _send_could_not_save(update: Update, context: ContextTypes.DEFAULT_TYPE, ex: Exception, media_type: Media) -> None:
     await context.bot.send_message(
             chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-            text=f"Cloud not save *{media_type}* \
+            text=f"Cloud not *save* {media_type} \
 from https://t.me/{update.effective_user.username} \
 ({update.effective_user.first_name} \
 {update.effective_user.last_name}) \
-because {error}.",
+because {ex}.",
         parse_mode="markdown"
         )
 
 async def _send_no_protest_folder(context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(
         chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-        text="bot received document file but could not create protest folders. \
-        Please try again. If the error persits contact it@letztegeneration.at."
+        text="Bot received document file but could not create protest folders."
     )
 
 def _get_username(update: Update)-> str:
@@ -60,34 +70,21 @@ def _get_username(update: Update)-> str:
     return username
 
 async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
-    logging.info("Start downloading video")
-    try:
-        video_file = await update.effective_message.video.get_file()
-        with open(video_file.file_path, "rb") as video_stream:
-            downloaded_file = video_stream.read()
-        logging.info("Downloaded video")
-        return downloaded_file
-    except Exception as error:
-        # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error)
-        if error == "File is too big":
-            await context.bot.send_message(
-                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-                text="bot received video file but could not save the video \
-                    because the file is too big."
-            )
+    logging.info("Start downloading video %s", update.effective_message.video.file_name)
+    video_file = await update.effective_message.video.get_file(read_timeout=600)
+    with open(video_file.file_path, "rb") as video_stream:
+        downloaded_file = video_stream.read()
+    logging.info("Downloaded video")
+    return downloaded_file
 
 async def _download_document_file(update: Update) -> bytes:
-    logging.info("Start downloading document")
-    try:
-        document_file = await update.effective_message.document.get_file()
-        with open(document_file.file_path, "rb") as document_stream:
-            downloaded_file = document_stream.read()
-        logging.info("Downloaded document")
-        return downloaded_file
-    except Exception as error:
-        # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error)
+    logging.info("Start downloading document %s", update.effective_message.document.file_name)
+    document_file = await update.effective_message.document.get_file(read_timeout=600)
+    with open(document_file.file_path, "rb") as document_stream:
+        downloaded_file = document_stream.read()
+    logging.info("Downloaded document")
+    return downloaded_file
+
 
 async def _upload_video(
         protest_folders,
@@ -108,10 +105,10 @@ async def _upload_video(
             file_name = f"{date.isoformat()}_{username}_{video_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, Media.VIDEO)
             logging.info("Finished upload video %s process", file_name)
-    except Exception as error:
+    except Exception as ex:
         # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error)
-        await _send_could_not_save(update, context, error, Media.VIDEO)
+        logging.exception(ex)
+        await _send_could_not_save(update, context, ex, Media.VIDEO)
 
 async def _upload_document_file(
         protest_folders,
@@ -133,20 +130,43 @@ async def _upload_document_file(
             file_name = f"{date.isoformat()}_{username}_{document_filename}"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, media_type)
             logging.info("Finished upload document %s process", file_name)
-    except Exception as error:
+    except HttpError as ex:
+        logging.debug(ex)
+        logging.error("An connection error occurred: %s", ex)
+        await _send_could_not_save(update, context, ex, media_type)
+    except TypeError as ex:
+        logging.debug(ex)
+        logging.error("An type error occurred: %s", ex)
+        await _send_could_not_save(update, context, ex, media_type)
+    except Exception as ex:
         # TODO(developer) - Handle errors.
-        logging.error('An error occurred: %s',error)
-        await _send_could_not_save(update, context, error, media_type)
+        logging.exception('An error occurred: %s',ex)
+        await _send_could_not_save(update, context, ex, media_type)
 
 async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """An uncompressed image is received as attachment. Upload the image to google drive."""
     username = _get_username(update)
     logging.info("Received document image from %s", username)
-    file_bytes = await _download_document_file(update)
+    try:
+        file_bytes = await _download_document_file(update)
+    except Exception as ex:
+        # TODO(developer) - Handle errors.
+        logging.exception(ex)
+        await _send_cloud_not_download(update, context, ex, Media.IMAGE)
+        return
     date = update.effective_message.date
-    protest_folders = drive.manage_folder(date, username)
+    try:
+        protest_folders = drive.manage_folder(date, username)
+    except HttpError as ex:
+        logging.debug(ex)
+        logging.error("A connection error occured %s", ex)
+        await _send_no_protest_folder(context)
+    except Exception as ex:
+        logging.exception(ex)
+        await _send_no_protest_folder(context)
+    else:
     # Upload image to drive
-    await _upload_document_file(protest_folders, file_bytes, update, context, Media.IMAGE)
+        await _upload_document_file(protest_folders, file_bytes, update, context, Media.IMAGE)
 
 async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -155,11 +175,26 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     """
     username = _get_username(update)
     logging.info("Received document video from %s", username)
-    file_bytes = await _download_document_file(update)
+    try:
+        file_bytes = await _download_document_file(update)
+    except Exception as ex:
+        # TODO(developer) - Handle errors.
+        logging.exception(ex)
+        await _send_cloud_not_download(update, context, ex, Media.VIDEO)
+        return
     date = update.effective_message.date
-    protest_folders = drive.manage_folder(date, username)
+    try:
+        protest_folders = drive.manage_folder(date, username)
+    except HttpError as ex:
+        logging.debug(ex)
+        logging.error("A connection error occured %s", ex)
+        await _send_no_protest_folder(context)
+    except Exception as ex:
+        logging.exception(ex)
+        await _send_no_protest_folder(context)
+    else:
     # Upload video to drive
-    await _upload_document_file(protest_folders, file_bytes, update, context, Media.VIDEO)
+        await _upload_document_file(protest_folders, file_bytes, update, context, Media.VIDEO)
 
 async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -185,11 +220,31 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     username = _get_username(update)
     logging.info("Received video from %s", username)
-    file_bytes = await _download_video(update, context)
+    try:
+        file_bytes = await _download_video(update, context)
+    except Exception as ex:
+        # TODO(developer) - Handle errors.
+        logging.exception(ex)
+        if ex == "File is too big":
+            await context.bot.send_message(
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+                text="bot received video file but could not save the video \
+                    because the file is too big."
+            )
+        return
     date = update.effective_message.date
-    protest_folders = drive.manage_folder(date, username)
-    # Upload video to drive
-    await _upload_video(protest_folders, file_bytes, update, context)
+    try:
+        protest_folders = drive.manage_folder(date, username)
+    except HttpError as ex:
+        logging.debug(ex)
+        logging.error("A connection error occured %s", ex)
+        await _send_no_protest_folder(context)
+    except Exception as ex:
+        logging.exception(ex)
+        await _send_no_protest_folder(context)
+    else:
+        # Upload video to drive
+        await _upload_video(protest_folders, file_bytes, update, context)
 
 
 async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -222,7 +277,7 @@ def main():
     app.add_handler(photo_handler)
     app.add_handler(video_hanlder)
 
-    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=600)
+    app.run_polling(allowed_updates=Update.ALL_TYPES, timeout=600, read_timeout=600, connect_timeout=600, write_timeout=600, pool_timeout=600)
 
 if __name__ == '__main__':
     main()
