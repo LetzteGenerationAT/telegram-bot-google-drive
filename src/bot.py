@@ -71,7 +71,7 @@ def _get_username(update: Update)-> str:
 
 async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
     logging.info("Start downloading video %s", update.effective_message.video.file_name)
-    video_file = await update.effective_message.video.get_file()
+    video_file = await update.effective_message.video.get_file(read_timeout=600)
     with open(video_file.file_path, "rb") as video_stream:
         downloaded_file = video_stream.read()
     logging.info("Downloaded video")
@@ -79,7 +79,7 @@ async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
 async def _download_document_file(update: Update) -> bytes:
     logging.info("Start downloading document %s", update.effective_message.document.file_name)
-    document_file = await update.effective_message.document.get_file()
+    document_file = await update.effective_message.document.get_file(read_timeout=600)
     with open(document_file.file_path, "rb") as document_stream:
         downloaded_file = document_stream.read()
     logging.info("Downloaded document")
