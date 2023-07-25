@@ -102,7 +102,7 @@ async def _upload_video(
             date = _get_date(update)
             username = _get_username(update)
             video_filename = update.effective_message.video.file_name
-            file_name = f"{date.isoformat()}_{username}_{video_filename}"
+            file_name = f"{date.isoformat()}_{username}_{video_filename}_COMPRESSED"
             drive.upload_file_to_folder(file_name, file_bytes, protest_folders, Media.VIDEO)
             logging.info("Finished upload video %s process", file_name)
     except Exception as ex:
