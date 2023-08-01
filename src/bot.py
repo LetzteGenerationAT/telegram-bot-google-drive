@@ -6,11 +6,13 @@ import os
 from datetime import datetime
 from datetime import timedelta
 import json
+import re
 
 from googleapiclient.errors import HttpError
 
 from telegram import Update
 from telegram.ext import filters, MessageHandler, ApplicationBuilder, ContextTypes
+from telegram.error import Badrequest
 
 # pylint: disable=import-error
 import pytz
@@ -27,6 +29,11 @@ logging.basicConfig(
     level=logging.getLevelName(config["LogLevel"])
 )
 
+def _escape(pattern:str) -> None:
+    pattern = re.escape(pattern)
+    pattern = pattern.replace("_", "\_")
+    return pattern
+
 def _get_date(update: Update) -> datetime:
     tzinfo = pytz.timezone(config["TIMEZONE"])
     date = update.effective_message.date.replace(tzinfo=tzinfo).astimezone()
@@ -35,27 +42,50 @@ def _get_date(update: Update) -> datetime:
         date = date + timedelta(hours=1)
     return date
 
-async def _send_cloud_not_download(update: Update, context: ContextTypes.DEFAULT_TYPE, ex : Exception, media_type: Media) -> None:
+async def _send_cloud_not_download(
+        update: Update, 
+        context: ContextTypes.DEFAULT_TYPE, ex : Exception, media_type: Media
+    ) -> None:
+    try:
         await context.bot.send_message(
-            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-            text=f"Cloud not *download* {media_type} \
-from https://t.me/{update.effective_user.username} \
-({update.effective_user.first_name} \
-{update.effective_user.last_name} \
-because {ex}.",
-        parse_mode="markdown"
-        )
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+                text=f"Cloud not *download* {media_type} \
+from https://t\.me/{_escape(update.effective_user.username)} \
+\({_escape(update.effective_user.first_name)} \
+{_escape(update.effective_user.last_name)}\) \
+    because {ex}\.",
+            parse_mode="MarkdownV2"
+            )
+    except Badrequest as error:
+        await context.bot.send_message(
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+                text=f"Cloud not *download* {media_type} \
+because {ex}\.",
+            parse_mode="MarkdownV2"
+            )
 
-async def _send_could_not_save(update: Update, context: ContextTypes.DEFAULT_TYPE, ex: Exception, media_type: Media) -> None:
-    await context.bot.send_message(
-            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-            text=f"Cloud not *save* {media_type} \
-from https://t.me/{update.effective_user.username} \
-({update.effective_user.first_name} \
-{update.effective_user.last_name}) \
-because {ex}.",
-        parse_mode="markdown"
+async def _send_could_not_save(
+        update: Update, context: ContextTypes.DEFAULT_TYPE, 
+        ex: Exception, media_type: Media
+    ) -> None:
+    try:
+        await context.bot.send_message(
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+                text=f"Cloud not *save* {media_type} \
+from https://t\.me/{_escape(update.effective_user.username)} \
+\({_escape(update.effective_user.first_name)} \
+{_escape(update.effective_user.last_name)}\) \
+because {ex}\.",
+            parse_mode="MarkdownV2"
         )
+    except Badrequest as error:
+        await context.bot.send_message(
+                chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+                text=f"Cloud not *save* {media_type} \
+because {ex}\.",
+            parse_mode="MarkdownV2"
+            )
+    
 
 async def _send_no_protest_folder(context: ContextTypes.DEFAULT_TYPE) -> None:
     await context.bot.send_message(
@@ -69,7 +99,7 @@ def _get_username(update: Update)-> str:
         username = update.effective_message.from_user.first_name
     return username
 
-async def _download_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bytes:
+async def _download_video(update: Update, _: ContextTypes.DEFAULT_TYPE) -> bytes:
     logging.info("Start downloading video %s", update.effective_message.video.file_name)
     video_file = await update.effective_message.video.get_file(read_timeout=600)
     with open(video_file.file_path, "rb") as video_stream:
@@ -203,15 +233,23 @@ async def photo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     username = _get_username(update)
     logging.info("Received photo from %s", username)
-    await context.bot.send_message(
-        chat_id=config["ERROR_MESSAGE_CHAT_ID"],
-        text=f"Cloud not save *photo* \
-from https://t.me/{update.effective_user.username} \
-({update.effective_user.first_name} \
-{update.effective_user.last_name}) \
-because it is compressed.",
-        parse_mode="markdown"
-    )
+    try:
+        await context.bot.send_message(
+            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+            text=f"Cloud not save *photo* \
+from https://t\.me/{_escape(update.effective_user.username)} \
+\({_escape(update.effective_user.first_name)} \
+{_escape(update.effective_user.last_name)}\) \
+because it is compressed\.",
+            parse_mode="MarkdownV2"
+        )
+    except Badrequest as error:
+                await context.bot.send_message(
+            chat_id=config["ERROR_MESSAGE_CHAT_ID"],
+            text=f"Cloud not save *photo* \
+because it is compressed\.",
+            parse_mode="MarkdownV2"
+        )
 
 async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
@@ -247,7 +285,7 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         await _upload_video(protest_folders, file_bytes, update, context)
 
 
-async def location(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def location(update: Update, _: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Demo for locaiton service.
     """
