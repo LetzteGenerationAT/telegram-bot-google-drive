@@ -1,5 +1,6 @@
 __pycache__
 .venv
+.venv-unix
 .vscode
 credentials.json
 token.json
