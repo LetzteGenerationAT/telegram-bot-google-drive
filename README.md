@@ -78,3 +78,6 @@ Push to Hub
 ```console
 docker push lastgenat/telegram-bot-google-drive:tag
 ```
+
+## Deploy
+Before each deploy the telegram-bot-api-data folder on the host system needs to be delted. The folder needs to be delted because of permission resitrictions between container deploys. TODO: solve permission restrictions.
