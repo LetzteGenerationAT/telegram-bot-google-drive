@@ -247,8 +247,10 @@ def _create_tickerbiene_folder(username: str, ticker_folder_id):
 
     return ticker_biene_folder_id, ticker_image_folder_id, ticker_videos_folder_id
 
-def create_folder(name: str, username: str) -> ProtestFolder:
-    """ Create a folder and prints the folder ID
+def create_parent_folder(name: str, username: str) -> ProtestFolder:
+    """ Create the parent folder and prints the folder ID.
+    This folder is used for the protest of a day on a location.
+    The location is dependend on the telegram channel the message was posted,
     Returns : Folder Id
     :raises:
     HttpError: if a connection error occured.
@@ -393,7 +395,7 @@ def search_protest_folder(parent_id, username: str)-> ProtestFolder:
 
     return protest_folder
 
-def manage_folder(date: datetime, username: str, location: str = None) -> ProtestFolder:
+def manage_folder(date: datetime, username: str, channel_name: str = None, location: str = None) -> ProtestFolder:
     """
     Get a list for all folders in the shared drive of the Presse Ag 
     in the Subfolder ./Pressemitteilungen/Protest
@@ -425,18 +427,26 @@ def manage_folder(date: datetime, username: str, location: str = None) -> Protes
         # Check if the folder was created by the bot.
         # If the folder has no name assume the folder was not created by the bot
         if len(folder_name_split) > 1:
-            folder_name = folder_name_split[1]
+            folder_name_bot = folder_name_split[1]
         else:
-            folder_name = ""
-        if fodler_name_date == tz_date.date().isoformat() and folder_name == "Bot":
+            folder_name_bot = ""
+        if len(folder_name_split) > 2:
+            folder_name_channel_name = folder_name_split[2]
+        else:
+            folder_name_bot = ""
+        if fodler_name_date == tz_date.date().isoformat() \
+        and folder_name_bot == "Bot" \
+        and (channel_name is None or folder_name_channel_name == channel_name):
             return search_protest_folder(folder['id'], username)
-    if location is None:
-        name = f"{tz_date.date().isoformat()} Bot"
+    if location is not None:
+        parent_folder_name = f"{tz_date.date().isoformat()} Bot {location}"
+    elif channel_name is not None: 
+        parent_folder_name = f"{tz_date.date().isoformat()} Bot {channel_name}"
     else:
-        name = f"{tz_date.date().isoformat()} Bot {location} "
-    protest_folder = create_folder(name, username)
+        parent_folder_name = f"{tz_date.date().isoformat()} Bot  "
+    parent_folder = create_parent_folder(parent_folder_name, username)
 
-    return protest_folder
+    return parent_folder
 
 QUERRY_MAIN = "mimeType='application/vnd.google-apps.folder' and trashed=false"
 if __name__ == '__main__':
