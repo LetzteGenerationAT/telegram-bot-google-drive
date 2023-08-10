@@ -72,7 +72,7 @@ docker build . -t lastgenat/telegram-bot-google-drive:tag
 
 Build and compose 
 ```console
-docker compose up --build telegram-bot-google-drive
+docker compose up --build telegram-bot-google-drive telegram-bot-api
 ```
 Push to Hub
 ```console

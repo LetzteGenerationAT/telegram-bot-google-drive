@@ -182,7 +182,11 @@ async def document_image(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     date = update.effective_message.date
     try:
-        protest_folders = drive.manage_folder(date, username)
+        channel_name = update.effective_message.chat.title
+    except AttributeError:
+        channel_name = None
+    try:
+        protest_folders = drive.manage_folder(date, username, channel_name)
     except HttpError as error:
         logging.debug(error)
         logging.error("A connection error occured %s", error)
@@ -206,7 +210,11 @@ async def document_video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return
     date = update.effective_message.date
     try:
-        protest_folders = drive.manage_folder(date, username)
+        channel_name = update.effective_message.chat.title
+    except AttributeError:
+        channel_name = None
+    try:
+        protest_folders = drive.manage_folder(date, username, channel_name)
     except HttpError as ex:
         logging.debug(ex)
         logging.error("A connection error occured %s", ex)
@@ -261,7 +269,11 @@ async def video(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         return
     date = update.effective_message.date
     try:
-        protest_folders = drive.manage_folder(date, username)
+        channel_name = update.effective_message.chat.title
+    except AttributeError:
+        channel_name = None
+    try:
+        protest_folders = drive.manage_folder(date, username, channel_name)
     except HttpError as ex:
         logging.debug(ex)
         logging.error("A connection error occured %s", ex)
