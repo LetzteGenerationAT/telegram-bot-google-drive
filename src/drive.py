@@ -426,14 +426,18 @@ def manage_folder(date: datetime, username: str, channel_name: str = None, locat
         fodler_name_date = folder_name_split[0]
         # Check if the folder was created by the bot.
         # If the folder has no name assume the folder was not created by the bot
+        logging.debug("folder name split %s", folder_name_split)
+        logging.debug("folder name date %s", fodler_name_date)
         if len(folder_name_split) > 1:
             folder_name_bot = folder_name_split[1]
         else:
             folder_name_bot = ""
         if len(folder_name_split) > 2:
-            folder_name_channel_name = folder_name_split[2]
+            folder_name_channel_name = ' '.join(folder_name_split[2:])
         else:
             folder_name_bot = ""
+        logging.debug("channel_name %s", folder_name_channel_name)
+        logging.debug("folder name channel name %s", folder_name_channel_name)
         if fodler_name_date == tz_date.date().isoformat() \
         and folder_name_bot == "Bot" \
         and (channel_name is None or folder_name_channel_name == channel_name):
