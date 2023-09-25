@@ -80,4 +80,4 @@ docker push lastgenat/telegram-bot-google-drive:tag
 ```
 
 ## Deploy
-Before each deploy the telegram-bot-api-data folder on the host system needs to be delted. The folder needs to be delted because of permission resitrictions between container deploys. TODO: solve permission restrictions.
+Before each deploy the telegram-bot-api-data folder on the host system needs to be delted. The folder needs to be delted because of permission resitrictions between container deploys. Set the correct time zone on system level, since the application looks up the current local time to assign time stamps. TODO: solve permission restrictions.
