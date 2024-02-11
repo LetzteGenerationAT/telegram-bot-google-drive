@@ -29,10 +29,14 @@ logging.basicConfig(
     level=logging.getLevelName(config["LogLevel"])
 )
 
-def _escape(pattern:str) -> None:
-    pattern = re.escape(pattern)
-    pattern = pattern.replace("_", r"\_")
-    return pattern
+def _escape(string_to_update:str) -> None:
+    if string_to_update is None:
+        logging.warning("Could not update not exisitng username.")
+        # Return None if username is None
+        return string_to_update
+    string_to_update = re.escape(string_to_update)
+    string_to_update = string_to_update.replace("_", r"\_")
+    return string_to_update
 
 def _get_date(update: Update) -> datetime:
     tzinfo = pytz.timezone(config["TIMEZONE"])
