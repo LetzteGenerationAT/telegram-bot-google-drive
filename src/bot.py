@@ -21,7 +21,9 @@ from enums import Media
 import drive
 import maps
 
-with open("config/config.json", "r", encoding="utf-8") as config_file:
+CONFIG_FILE_PATH="config/config.local.json"
+
+with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as config_file:
     config = json.load(config_file)
 
 logging.basicConfig(
