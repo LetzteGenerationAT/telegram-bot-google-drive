@@ -25,11 +25,19 @@ import pytz
 from enums import Media
 import helper
 
+
+
+CONFIG_FILE_PATH="config/config.local.json"
+LOGGING_FILE_PATH="var/bot.log"
+
+helper.log_rotate(LOGGING_FILE_PATH)
+
 with open("config/config.json", "r", encoding="utf-8") as file:
     config = json.load(file)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename=LOGGING_FILE_PATH, encoding='utf-8',
     level=logging.getLevelName(config["LogLevel"])
 )
 

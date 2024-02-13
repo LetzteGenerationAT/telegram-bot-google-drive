@@ -21,15 +21,17 @@ from enums import Media
 import drive
 import maps
 
-CONFIG_FILE_PATH="config/config.local.json"
 
-with open(CONFIG_FILE_PATH, "r", encoding="utf-8") as config_file:
+with open(drive.CONFIG_FILE_PATH, "r", encoding="utf-8") as config_file:
     config = json.load(config_file)
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    filename=drive.LOGGING_FILE_PATH, encoding='utf-8',
     level=logging.getLevelName(config["LogLevel"])
 )
+
+logging.info('Bot started')
 
 def _escape(string_to_update:str) -> None:
     if string_to_update is None:
