@@ -9,3 +9,4 @@ telegram-bot-api-data
 .pypirc
 docker-composeDEV.yml
 config/config.local.json
+logging
