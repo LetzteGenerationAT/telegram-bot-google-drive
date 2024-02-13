@@ -11,8 +11,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Link to docker compose dev file in gogole drive
 - ReadMe entry for docker compose dev file
 - GitIgnore or docker compose dev file
-- GitIgnore for loca config
+- GitIgnore for local config
 - Constant for config file
+- Logging to File
+- Log rotate as helper function
 
 ### Changed
 
@@ -57,7 +59,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1] - 2023-07-02
 
-[unreleased]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/commit/75e38dd3046ad120552cf7d0bff96d08416b8b1b
+[unreleased]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/commit/197446f0ba41268a2be02c0f60ec19b161a85c00
 [0.18]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.18
 [0.17]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.17
 [0.16]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.16
