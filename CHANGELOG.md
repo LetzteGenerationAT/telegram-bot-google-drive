@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+## [0.19] - 2024-02-14
 
 ### Added
 
@@ -23,6 +23,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Escape pattern string amendment now with more faile-safe checks
 
 ### Removed
+
+- Default config values. New values can be found in google drive.
 
 ## [0.18] - 2023-08-26
 
@@ -60,7 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [0.1] - 2023-07-02
 
-[unreleased]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/commit/197446f0ba41268a2be02c0f60ec19b161a85c00
+[0.19]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.19
 [0.18]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.18
 [0.17]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.17
 [0.16]: https://github.com/LetzteGenerationAT/telegram-bot-google-drive/releases/tag/v0.16

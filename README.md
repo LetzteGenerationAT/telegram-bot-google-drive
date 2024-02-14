@@ -1,6 +1,6 @@
 ﻿# telegram-bot-google-drive
 
-## Getting Started 
+## Getting Started
 
 Create a virtual python environment
 
@@ -8,7 +8,7 @@ Create a virtual python environment
 python -m venv .venv
 ```
 
-Activate the python environment. 
+Activate the python environment.
 
 ```console
 .\.venv\Scripts\activate
@@ -36,16 +36,16 @@ You get your Telegram API Token from BotFather.
 
 Environment variables are used to store API tokens.
 
-### TELEGRAM_API_TOKEN 
+### TELEGRAM_API_TOKEN
 
 The token from Botfather for the Telgram API
 
-### LOCATION_IQ_API_TOKEN 
+### LOCATION_IQ_API_TOKEN
 
 Token for Location IQ API get the location of a pictures or videos.
 Possibly needed in the future.
 
-### TELEGRAM_API_ID 
+### TELEGRAM_API_ID
 
 Token for the local API, get it from [here](https://core.telegram.org/api/obtaining_api_id)
 
@@ -59,7 +59,7 @@ You need an API Token for Telegram. Such a token can be created with the @Botfat
 
 ## Google Drive API
 
-You need OAuth Client credentials for Google Workspace. There is a project in the [google cloud console](https://console.cloud.google.com/) named telegram-Google-drive-bot. You can use the credentials from there. See [this](https://developers.google.com/drive/api/quickstart/python) guide for further information. In the oAuthScreen login with the apps@letztegeneration.at workspace account.
+You need OAuth Client credentials for Google Workspace. There is a project in the [google cloud console](https://console.cloud.google.com/) named telegram-Google-drive-bot. You can use the credentials from there. See [this](https://developers.google.com/drive/api/quickstart/python) guide for further information. In the oAuthScreen login with the <apps@letztegeneration.at> workspace account.
 
 Should be handled with Service Account in the future.
 
